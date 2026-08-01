@@ -6,6 +6,17 @@ from app.analyzer.analyzer import Category
 class PromptManager:
     """カテゴリに応じたテンプレートを用いてAI用プロンプトを構築するクラス"""
 
+    _RESPONSE_REQUIREMENTS: ClassVar[str] = (
+        "Response requirements:\n"
+        "- Respond in Japanese.\n"
+        "- Write explanations, reasoning, and next steps in Japanese.\n"
+        "- Preserve code, commands, URLs, file paths, flags, variable names, "
+        "and cryptographic parameters exactly as provided.\n"
+        "- Technical terms may include their English names when useful.\n"
+        "- Clearly distinguish confirmed facts from hypotheses.\n"
+        "- Provide concise and actionable steps."
+    )
+
     _TEMPLATES: ClassVar[dict[str, str]] = {
         Category.CRYPTO: (
             "You are an expert in Cryptography and CTF challenges.\n"
@@ -60,5 +71,6 @@ class PromptManager:
         return (
             f"{base_prompt}\n\n"
             f"Relevant local knowledge:\n"
-            f"{knowledge_text}"
+            f"{knowledge_text}\n\n"
+            f"{self._RESPONSE_REQUIREMENTS}"
         )
