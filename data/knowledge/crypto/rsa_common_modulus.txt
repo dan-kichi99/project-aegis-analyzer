@@ -1,0 +1,7 @@
+RSA Common Modulus Attack
+
+When the same RSA plaintext message m is encrypted using the same modulus N with two different public exponents e1 and e2 that are coprime (gcd(e1, e2) = 1), a common modulus attack can recover the original message.
+Given c1 = m^e1 mod N and c2 = m^e2 mod N:
+Using Extended Euclidean Algorithm, find integers s1 and s2 such that s1 * e1 + s2 * e2 = 1.
+If one of s1 or s2 is negative, compute modular inverse: (c1)^(-1) mod N.
+The original message can be calculated directly via m = (c1^s1 * c2^s2) mod N without factoring N.

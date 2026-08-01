@@ -1,0 +1,9 @@
+Exif Metadata Inspection in Forensic Analysis
+
+Exchangeable Image File Format (EXIF) metadata stores embedded information inside digital media files (JPEG, PNG, WAV).
+Exif metadata fields commonly containing CTF flags or hints:
+- Comment, UserComment, Artist, Copyright, ImageDescription.
+- GPS Latitude and GPS Longitude coordinates.
+- Camera make, model, software version, and creation timestamp.
+Tooling: Use 'exiftool filename.jpg' to inspect all metadata tags.
+Removing or editing Exif tags is done using exiftool -all= filename.jpg.

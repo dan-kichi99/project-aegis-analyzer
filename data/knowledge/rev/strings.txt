@@ -1,0 +1,9 @@
+Strings Utility in Binary Analysis
+
+The strings command extracts printable ASCII or Unicode character sequences from binary executables.
+Usage: strings -n 8 binary_filename (extract strings of at least 8 characters).
+In reverse engineering, strings reveals:
+- Hardcoded passwords, flags, or cryptographic keys.
+- Embedded URLs, IP addresses, file paths, and debug messages.
+- Imported/exported function names and library dependencies.
+When binaries are obfuscated or packed (e.g., UPX), strings output may be hidden until unpacked.

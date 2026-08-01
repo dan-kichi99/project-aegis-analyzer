@@ -1,0 +1,1 @@
+Digital image steganography uses least significant bit hidden data embedding inside PNG pixels.

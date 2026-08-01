@@ -1,0 +1,9 @@
+SQL Injection (SQLi) Vulnerability
+
+SQL injection occurs when untrusted user input is concatenated directly into a database SQL query without sanitization or parameterized queries.
+Key injection types:
+- In-band (Union-based): Append UNION SELECT to extract data from other tables.
+- Error-based: Trigger database syntax or conversion errors that expose sensitive data.
+- Blind (Boolean-based): Infer database contents by asking true/false boolean questions and observing page responses.
+- Blind (Time-based): Use sleep() or benchmark functions to infer data from response delays.
+Common checks: single quote test ('), OR 1=1 --, comment characters (-- or #).

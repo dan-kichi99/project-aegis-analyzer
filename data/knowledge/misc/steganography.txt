@@ -1,0 +1,8 @@
+Steganography and Hidden Image Data
+
+Steganography is the practice of concealing secret information within non-secret files such as PNG or JPEG images.
+Common techniques in CTF Misc challenges:
+- Least Significant Bit (LSB) steganography: Hide payload in lowest bits of image pixel color channels (Red, Green, Blue, Alpha).
+- Tool usage: zsteg (for PNG/BMP LSB analysis), steghide (for JPEG passphrase protected secrets), StegSolve (visual color channel inspection).
+- Binwalk / Foremost: Check for appended hidden files or zip archives at the end of image files.
+- LSB manipulation alters image pixels invisibly to human eyes while storing arbitrary binary data.

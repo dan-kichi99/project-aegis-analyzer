@@ -1,0 +1,1 @@
+Executables often store flag keys as plain text. ASCII string extraction utilities can reveal hardcoded credentials.

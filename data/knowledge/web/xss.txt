@@ -1,0 +1,8 @@
+Cross-Site Scripting (XSS)
+
+Cross-Site Scripting allows attackers to execute malicious JavaScript in a victim's web browser context.
+Categories:
+- Reflected XSS: Payload is reflected off web server in immediate response (e.g., search parameters).
+- Stored XSS: Payload is persistently stored in database/comments and executed when users view the page.
+- DOM-based XSS: Vulnerability exists entirely in client-side scripts manipulating DOM sources and sinks (e.g., location.hash -> innerHTML).
+Exploit goals: Session hijacking via document.cookie theft, keylogging, CSRF trigger, or webpage defacement.

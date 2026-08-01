@@ -1,0 +1,7 @@
+RSA Fermat Factorization Attack
+
+Fermat factorization is an effective attack when the RSA prime factors p and q are close to each other.
+When |p - q| is small, N = p * q can be written as N = a^2 - b^2 = (a - b)(a + b).
+To perform Fermat factorization, start with a = ceil(sqrt(N)) and check if a^2 - N is a perfect square b^2.
+Increment a until b^2 is a perfect square, then compute p = a - b and q = a + b.
+Once p and q are recovered, calculate phi(N) = (p - 1) * (q - 1), private exponent d = d_inv(e, phi(N)), and decrypt the ciphertext m = c^d mod N.

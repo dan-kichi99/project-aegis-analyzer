@@ -1,0 +1,9 @@
+Ghidra Reverse Engineering Framework
+
+Ghidra is a free open-source software reverse engineering suite developed by NSA featuring disassembler and decompiler engines.
+Key workflows for CTF reverse engineering:
+1. Auto-analyze binary file upon import.
+2. Check Entry Point and main function decompilation in C-like pseudocode.
+3. Symbol Tree / Defined Strings: Search for flag format strings or prompt messages.
+4. Rename variables and functions (key shortcut 'L') to clarify control flow.
+5. Cross-references (Xrefs): Press 'X' on functions or memory addresses to see where they are called or referenced.

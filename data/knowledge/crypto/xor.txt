@@ -1,0 +1,9 @@
+XOR Cipher and Repeated-Key XOR Analysis
+
+Exclusive OR (XOR) is a symmetric bitwise operation where A XOR B = C implies A XOR C = B and B XOR C = A.
+Single-byte XOR: Try all 256 key candidates and score decrypted text using English character frequencies.
+Repeated-key XOR:
+1. Determine key length by computing Hamming distance / Hamming weight over different key length guesses.
+2. Group ciphertext bytes into blocks corresponding to each key index.
+3. Solve each position as a single-byte XOR problem.
+Known-plaintext attack: If part of the plaintext is known (e.g., flag format like "FLAG{"), key bytes can be immediately recovered via Key = Ciphertext XOR Plaintext.

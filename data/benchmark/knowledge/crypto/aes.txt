@@ -1,0 +1,1 @@
+AES symmetric encryption supports cipher block chaining mode. Ciphertext manipulation enables padding oracle vulnerability.

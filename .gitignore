@@ -1,0 +1,26 @@
+﻿# 秘密情報
+.env
+.env.*
+!.env.example
+
+# Python仮想環境
+.venv/
+venv/
+
+# Pythonキャッシュ
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# ログ・一時ファイル
+*.log
+*.tmp

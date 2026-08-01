@@ -1,0 +1,10 @@
+XOR Encryption and String Obfuscation in Binaries
+
+Reverse engineering challenges often obscure flag strings or input validation logic using XOR operations.
+Common pattern: User input is XORed byte-by-byte with a constant key or key stream and compared against a hardcoded byte array.
+Reversing strategy:
+1. Identify the hardcoded encrypted byte array in memory/decompiler.
+2. Identify the key byte(s) or key generation loop in disassembly.
+3. Re-implement the XOR logic in Python script:
+   decrypted_flag = ''.join(chr(b ^ key) for b in encrypted_bytes)
+Because XOR is self-inverting, applying the same key to encrypted bytes recovers original flag text.

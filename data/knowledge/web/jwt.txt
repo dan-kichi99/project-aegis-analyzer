@@ -1,0 +1,8 @@
+JSON Web Token (JWT) Attacks
+
+JSON Web Token consists of three Base64URL-encoded parts separated by dots: Header.Payload.Signature.
+Common vulnerability vectors:
+1. "none" algorithm attack: Modify header algorithm to {"alg": "none"} and strip signature bytes to bypass verification.
+2. HMAC secret brute-force: Weak symmetric secrets (HS256) can be cracked offline using John the Ripper or hashcat.
+3. RS256 to HS256 key confusion attack: Change algorithm from asymmetric RS256 to symmetric HS256, using public key as HMAC key.
+4. Kid header injection: Inject path traversal or SQL injection in "kid" (Key ID) header field.

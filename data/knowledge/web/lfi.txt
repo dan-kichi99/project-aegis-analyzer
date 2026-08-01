@@ -1,0 +1,11 @@
+Local File Inclusion (LFI) and Path Traversal
+
+Local File Inclusion allows attackers to include and read local server files through parameter manipulation.
+Path traversal payloads: ../../../etc/passwd or ..\..\..\windows\win.ini.
+Bypass techniques for filters:
+- URL encoding (%2e%2e%2f) or double URL encoding (%252e%252e%252f).
+- PHP Wrapper tricks: php://filter/convert.base64-encode/resource=index.php to leak PHP source code without execution.
+RCE via LFI:
+- Including session files (sess_SESSIONID)
+- Including web server log files (/var/log/apache2/access.log) via user-agent log poisoning
+- Including /proc/self/environ.

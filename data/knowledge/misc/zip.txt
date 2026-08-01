@@ -1,0 +1,8 @@
+ZIP Archive Forensics and Cracking
+
+ZIP file analysis in CTF challenges involves password protection, nested archives, or corruption.
+Common techniques:
+1. Encrypted ZIP cracking: Use fcrackzip or John the Ripper (zip2john) with wordlists like rockyou.txt.
+2. Known Plaintext Attack (ZipCrypto): Use bkcrack tool if an unencrypted version of one file inside the encrypted ZIP is known.
+3. Zip Slip / Path Traversal: Malicious relative paths (../../file) inside archive headers.
+4. Zip Bomb: Highly compressed recursive archives designed for denial of service.

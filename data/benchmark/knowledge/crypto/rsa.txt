@@ -1,0 +1,1 @@
+RSA public key cryptosystem relies on integer prime factorization problem. Small prime differences allow Fermat factorization attack.

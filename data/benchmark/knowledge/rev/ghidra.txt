@@ -1,0 +1,1 @@
+NSA reverse engineering framework Ghidra provides disassembly and decompiler analysis for ELF and PE binaries.

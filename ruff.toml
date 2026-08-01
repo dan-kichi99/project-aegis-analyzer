@@ -1,0 +1,8 @@
+exclude = [
+    ".venv",
+    "__pycache__",
+    ".pytest_cache",
+]
+
+[lint.per-file-ignores]
+"app/knowledge/batch_knowledge_importer.py" = ["BLE001"]

@@ -1,0 +1,10 @@
+strcmp and Input Comparison Logic in Reversing
+
+Simple reverse engineering challenges validate user input using comparison functions like strcmp, strncmp, memcmp, or custom loop checks.
+When analyzing disassembly or decompiled C code:
+- Locate call instructions to strcmp(user_input, target_string).
+- Inspect arguments passed to strcmp on stack or registers (RDI/RSI in x86_64 ABI).
+- If dynamic analysis (GDB) is used, set breakpoint at strcmp call:
+  x/s $rdi (first argument)
+  x/s $rsi (second argument)
+The expected flag or password can often be read directly from memory at the comparison step.

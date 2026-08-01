@@ -1,0 +1,7 @@
+AES CBC Mode and Padding Oracle Attack
+
+Advanced Encryption Standard (AES) in Cipher Block Chaining (CBC) mode encrypts plaintext blocks by XORing each block with the previous ciphertext block before encryption.
+The first block is XORed with an Initialization Vector (IV).
+Decryption formula: P_i = Decrypt(C_i, Key) XOR C_(i-1) (where C_0 = IV).
+If an application reveals whether PKCS#7 padding is valid or invalid upon decryption, it is vulnerable to a Padding Oracle Attack.
+An attacker can decrypt arbitrary ciphertext block by block or forge encrypted messages without knowing the secret key by abusing error responses.

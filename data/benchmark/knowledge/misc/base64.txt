@@ -1,0 +1,1 @@
+Base64 represents standard binary to text encoding scheme using 64 ASCII printable characters and padding.

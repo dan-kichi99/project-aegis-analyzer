@@ -1,0 +1,7 @@
+Server Side Template Injection (SSTI)
+
+Server-Side Template Injection occurs when user input is concatenated into template engines instead of passed as data parameters.
+Common template engines: Jinja2/Twig (Python/PHP), Mako, ERB (Ruby), Thymeleaf (Java), FreeMarker.
+Detection payload test: {{ 7 * 7 }} or ${ 7 * 7 } returning 49 indicates template evaluation.
+In Jinja2 (Python), SSTI can lead to Remote Code Execution (RCE) by navigating class hierarchies:
+Payload pattern: {{ ''.__class__.__mro__[1].__subclasses__() }} to locate subprocess.Popen or os module.

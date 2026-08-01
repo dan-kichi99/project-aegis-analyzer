@@ -1,0 +1,9 @@
+PCAP Packet Capture Analysis
+
+Packet Capture (.pcap or .pcapng) files record network traffic sessions for forensic network analysis.
+Analysis tools: Wireshark (GUI) and tshark / tcpdump (CLI).
+Common CTF pcap analysis tasks:
+- Wireshark display filters: http, dns, ftp, tcp.port == 80, ip.addr == 192.168.1.1.
+- Follow Stream: Right-click TCP/HTTP packet -> Follow -> TCP Stream to view full conversation payload.
+- Export Objects: File -> Export Objects -> HTTP to extract transmitted files (images, zip, binaries).
+- Search for sensitive credentials, unencrypted passwords, HTTP POST data, or transferred flag strings.

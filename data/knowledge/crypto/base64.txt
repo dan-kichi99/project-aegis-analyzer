@@ -1,0 +1,7 @@
+Base64 Encoding and Decoding Scheme
+
+Base64 is a binary-to-text encoding scheme that represents binary data in an ASCII string format using 64 printable characters (A-Z, a-z, 0-9, +, /) and '=' for padding.
+It converts groups of 3 bytes (24 bits) into 4 6-bit characters.
+When input byte count is not divisible by 3, '=' padding characters are appended at the end.
+Base64 is encoding, NOT encryption; it provides no confidentiality or security.
+In CTF challenges, flags or payloads are frequently Base64 encoded or double Base64 encoded.

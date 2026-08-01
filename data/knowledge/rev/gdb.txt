@@ -1,0 +1,10 @@
+GDB and Dynamic Analysis for Binaries
+
+GNU Debugger (GDB) with extensions like GEF or pwndbg is essential for dynamic analysis in binary reverse engineering and exploitation.
+Core GDB commands:
+- break *main or break *0x401122: Set breakpoint at main or specific instruction address.
+- run (r): Start execution with optional arguments.
+- info registers (i r): Inspect register contents (RAX, RBX, RIP, RSP).
+- x/20wx $rsp or x/s 0x402000: Examine memory contents as hex words or strings.
+- stepi (si) / nexti (ni): Step into or step over assembly instructions.
+Use GDB to inspect memory buffers right before comparison operations like strcmp or memcmp.

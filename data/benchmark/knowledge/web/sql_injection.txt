@@ -1,0 +1,1 @@
+Unsanitized user input in database query causes SQL injection vulnerability. Attackers can bypass authentication forms.
