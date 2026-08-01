@@ -29,7 +29,7 @@ def test_question_only():
 
     result = builder.build(challenge)
 
-    expected = "Challenge Question:\nDecrypt this RSA challenge.\n\nAttached Files:\nNone"
+    expected = "問題文：\nDecrypt this RSA challenge.\n\n添付ファイル：\nなし"
     assert result == expected
 
 
@@ -50,10 +50,11 @@ def test_question_and_single_text_file():
 
     result = builder.build(challenge)
 
-    assert "Challenge Question:\nFind flag." in result
-    assert "[File 1]\nName: output.txt" in result
-    assert "Text Content:\nc = 12345" in result
-    assert "Extracted Strings:\n- c = 12345" in result
+    assert "問題文：\nFind flag." in result
+    assert "添付ファイル：" in result
+    assert "[ファイル 1]\nファイル名：output.txt" in result
+    assert "テキスト内容：\nc = 12345" in result
+    assert "抽出文字列：\n- c = 12345" in result
 
 
 def test_question_and_single_binary_file():
@@ -73,9 +74,9 @@ def test_question_and_single_binary_file():
 
     result = builder.build(challenge)
 
-    assert "Detected Type: pe" in result
-    assert "Text Content:\nNot available" in result
-    assert "Extracted Strings:\n- MZ_header\n- FLAG{binary_flag}" in result
+    assert "検出形式：pe" in result
+    assert "テキスト内容：\n利用できません" in result
+    assert "抽出文字列：\n- MZ_header\n- FLAG{binary_flag}" in result
 
 
 def test_multiple_files_and_order_preservation():
@@ -89,9 +90,9 @@ def test_multiple_files_and_order_preservation():
 
     result = builder.build(challenge)
 
-    assert "[File 1]\nName: first.txt" in result
-    assert "[File 2]\nName: second.bin" in result
-    assert result.index("[File 1]") < result.index("[File 2]")
+    assert "[ファイル 1]\nファイル名：first.txt" in result
+    assert "[ファイル 2]\nファイル名：second.bin" in result
+    assert result.index("[ファイル 1]") < result.index("[ファイル 2]")
 
 
 def test_text_content_none():
@@ -101,7 +102,7 @@ def test_text_content_none():
 
     result = builder.build(challenge)
 
-    assert "Text Content:\nNot available" in result
+    assert "テキスト内容：\n利用できません" in result
 
 
 def test_strings_empty():
@@ -111,7 +112,7 @@ def test_strings_empty():
 
     result = builder.build(challenge)
 
-    assert "Extracted Strings:\nNone" in result
+    assert "抽出文字列：\nなし" in result
 
 
 def test_strings_limit_50():
@@ -137,7 +138,7 @@ def test_text_content_limit_10000():
 
     result = builder.build(challenge)
 
-    assert "A" * 10_000 + "\n[truncated]" in result
+    assert "A" * 10_000 + "\n[省略]" in result
     assert "A" * 10_001 not in result
     # 元の FileAnalysisResult の text_content 自体は変更されないことの検証
     assert len(file_res.text_content) == 15_000
@@ -165,7 +166,7 @@ def test_japanese_question():
 
     result = builder.build(challenge)
 
-    assert "Challenge Question:\nこの暗号文を解読してください。" in result
+    assert "問題文：\nこの暗号文を解読してください。" in result
 
 
 def test_japanese_text_content():
@@ -179,5 +180,5 @@ def test_japanese_text_content():
 
     result = builder.build(challenge)
 
-    assert "Text Content:\nフラグは FLAG{日本語テスト} です。" in result
+    assert "テキスト内容：\nフラグは FLAG{日本語テスト} です。" in result
     assert "- FLAG{日本語テスト}" in result

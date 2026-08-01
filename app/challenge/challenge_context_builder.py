@@ -13,35 +13,35 @@ class ChallengeContextBuilder:
             raise ValueError("Challenge question cannot be empty.")
 
         lines = [
-            "Challenge Question:",
+            "問題文：",
             question,
             "",
-            "Attached Files:",
+            "添付ファイル：",
         ]
 
         if not challenge.files:
-            lines.append("None")
+            lines.append("なし")
             return "\n".join(lines)
 
         for index, file_res in enumerate(challenge.files, start=1):
-            lines.append(f"\n[File {index}]")
-            lines.append(f"Name: {file_res.name}")
-            lines.append(f"Detected Type: {file_res.detected_type}")
-            lines.append(f"Size: {file_res.size} bytes")
-            lines.append(f"Extension: {file_res.extension}")
+            lines.append(f"\n[ファイル {index}]")
+            lines.append(f"ファイル名：{file_res.name}")
+            lines.append(f"検出形式：{file_res.detected_type}")
+            lines.append(f"サイズ：{file_res.size} bytes")
+            lines.append(f"拡張子：{file_res.extension}")
 
-            lines.append("\nText Content:")
+            lines.append("\nテキスト内容：")
             if file_res.text_content is None:
-                lines.append("Not available")
+                lines.append("利用できません")
             else:
                 text = file_res.text_content
                 if len(text) > _TEXT_CONTENT_LIMIT:
-                    text = text[:_TEXT_CONTENT_LIMIT] + "\n[truncated]"
+                    text = text[:_TEXT_CONTENT_LIMIT] + "\n[省略]"
                 lines.append(text)
 
-            lines.append("\nExtracted Strings:")
+            lines.append("\n抽出文字列：")
             if not file_res.strings:
-                lines.append("None")
+                lines.append("なし")
             else:
                 limited_strings = file_res.strings[:_STRINGS_CONTEXT_LIMIT]
                 for s in limited_strings:

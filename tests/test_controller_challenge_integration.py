@@ -79,7 +79,7 @@ def test_process_challenge_question_only():
     assert result is not None
     assert fake_ai.last_prompt is not None
     assert "Decrypt this RSA challenge." in fake_ai.last_prompt
-    assert "Attached Files:\nNone" in fake_ai.last_prompt
+    assert "添付ファイル：\nなし" in fake_ai.last_prompt
 
 
 def test_process_challenge_with_text_file():
@@ -104,7 +104,7 @@ def test_process_challenge_with_text_file():
 
     assert fake_ai.last_prompt is not None
     assert (
-        "Text Content:\nn = 123456789\ne = 65537"
+        "テキスト内容：\nn = 123456789\ne = 65537"
         in fake_ai.last_prompt
     )
 
@@ -132,8 +132,8 @@ def test_process_challenge_with_binary_file():
     controller.process_challenge(challenge)
 
     assert fake_ai.last_prompt is not None
-    assert "Detected Type: pe" in fake_ai.last_prompt
-    assert "Text Content:\nNot available" in fake_ai.last_prompt
+    assert "検出形式：pe" in fake_ai.last_prompt
+    assert "テキスト内容：\n利用できません" in fake_ai.last_prompt
     assert "- FLAG{embedded_test}" in fake_ai.last_prompt
 
 
@@ -160,8 +160,8 @@ def test_process_challenge_multiple_files():
     controller.process_challenge(challenge)
 
     assert fake_ai.last_prompt is not None
-    assert "[File 1]\nName: file1.txt" in fake_ai.last_prompt
-    assert "[File 2]\nName: file2.bin" in fake_ai.last_prompt
+    assert "[ファイル 1]\nファイル名：file1.txt" in fake_ai.last_prompt
+    assert "[ファイル 2]\nファイル名：file2.bin" in fake_ai.last_prompt
 
 
 def test_analyzer_uses_question_only_for_category():
