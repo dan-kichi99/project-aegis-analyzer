@@ -62,6 +62,7 @@ def main() -> None:
 
     service = ChallengeService(
         controller=controller,
+        analyzer=analyzer,
     )
 
     formatter = ResultFormatter()
