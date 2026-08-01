@@ -6,6 +6,7 @@ from app.controller.controller import Controller
 from app.file.file_analysis_result import FileAnalysisResult
 from app.file.file_loader import FileLoader
 from app.file.static_file_analyzer import StaticFileAnalyzer
+from app.file.zip_archive_analyzer import ZipArchiveAnalyzer
 from app.judge.flag_extractor import FlagExtractor
 from app.judge.judge_result import JudgeResult
 
@@ -24,6 +25,7 @@ class ChallengeService:
         self._analyzer = analyzer
         self.file_loader = file_loader or FileLoader()
         self.file_analyzer = file_analyzer or StaticFileAnalyzer()
+        self._zip_analyzer = ZipArchiveAnalyzer(self.file_analyzer)
         self.flag_extractor = FlagExtractor()
 
     def solve(
@@ -39,6 +41,10 @@ class ChallengeService:
             file_input = self.file_loader.load(path)
             analysis_result = self.file_analyzer.analyze(file_input)
             analysis_results.append(analysis_result)
+            if analysis_result.detected_type == "zip":
+                analysis_results.extend(
+                    self._zip_analyzer.analyze(file_input)
+                )
 
         challenge = ChallengeInput(
             question=question,
