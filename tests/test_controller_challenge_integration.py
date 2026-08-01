@@ -1,8 +1,8 @@
 import pytest
 
-from app.ai.base import BaseAIClient
 from app.analyzer.analyzer import Analyzer
 from app.challenge.challenge_input import ChallengeInput
+from app.client.base_client import BaseAIClient
 from app.controller.controller import Controller
 from app.file.file_analysis_result import FileAnalysisResult
 from app.judge.confidence_estimator import ConfidenceEstimator

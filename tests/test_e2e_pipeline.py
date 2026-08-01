@@ -2,8 +2,8 @@ from pathlib import Path
 
 import pytest
 
-from app.ai.base import BaseAIClient
 from app.analyzer.analyzer import Analyzer, Category
+from app.client.base_client import BaseAIClient
 from app.controller.controller import Controller
 from app.judge.confidence_estimator import ConfidenceEstimator
 from app.judge.flag_extractor import FlagExtractor
