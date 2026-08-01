@@ -153,7 +153,7 @@ def test_main_cli_file_not_found_error_handling(
 
     assert exc_info.value.code == 1
     mock_print.assert_any_call(
-        "Error: File not found: nonexistent.txt"
+        "エラー：File not found: nonexistent.txt"
     )
 
 

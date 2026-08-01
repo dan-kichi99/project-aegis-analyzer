@@ -26,12 +26,12 @@ def test_config_default_model_when_not_set(monkeypatch):
 def test_config_raises_value_error_when_api_key_missing(monkeypatch):
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
 
-    with pytest.raises(ValueError, match="OPENAI_API_KEY is not configured."):
+    with pytest.raises(ValueError, match="OPENAI_API_KEYが設定されていません。"):
         Config()
 
 
 def test_config_raises_value_error_when_api_key_empty(monkeypatch):
     monkeypatch.setenv("OPENAI_API_KEY", "   ")
 
-    with pytest.raises(ValueError, match="OPENAI_API_KEY is not configured."):
+    with pytest.raises(ValueError, match="OPENAI_API_KEYが設定されていません。"):
         Config()

@@ -9,7 +9,7 @@ class Config:
 
         if not api_key or not api_key.strip():
             raise ValueError(
-                "OPENAI_API_KEY is not configured."
+                "OPENAI_API_KEYが設定されていません。"
             )
 
         self.openai_api_key = api_key.strip()

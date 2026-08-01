@@ -71,8 +71,7 @@ def main() -> None:
         question = input("> ")
 
         print(
-            "File paths "
-            "(comma-separated, leave blank for none):"
+            "添付ファイルのパスをカンマ区切りで入力してください。"
         )
         raw_files = input("> ")
 
@@ -87,7 +86,7 @@ def main() -> None:
         print(formatted_output)
 
     except (FileNotFoundError, ValueError) as error:
-        print(f"Error: {error}")
+        print(f"エラー：{error}")
         sys.exit(1)
 
 
