@@ -77,6 +77,14 @@ def main() -> None:
 
         file_paths = parse_file_paths(raw_files)
 
+        print(
+            "========================\n"
+            "Project Aegis\n"
+            "解析中...\n"
+            "========================",
+            flush=True,
+        )
+
         result = service.solve(
             question=question,
             file_paths=file_paths,
@@ -85,6 +93,12 @@ def main() -> None:
         formatted_output = formatter.format(result)
         print(formatted_output)
 
+    except RuntimeError as error:
+        print(
+            "AIとの通信中にエラーが発生しました。\n"
+            f"詳細：{error}"
+        )
+        sys.exit(1)
     except (FileNotFoundError, ValueError) as error:
         print(f"エラー：{error}")
         sys.exit(1)
