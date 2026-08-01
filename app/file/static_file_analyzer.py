@@ -2,6 +2,7 @@ from app.file.common_encoding_decoder import decode_common_encoding
 from app.file.file_analysis_result import FileAnalysisResult
 from app.file.file_input import FileInput
 from app.file.file_type_detector import FileTypeDetector
+from app.file.image_metadata_extractor import extract_image_metadata
 
 _ANALYSIS_BYTE_LIMIT = 2_000_000
 _MIN_STRING_LENGTH = 4
@@ -33,6 +34,10 @@ class StaticFileAnalyzer:
 
         # Printable strings 抽出
         extracted_strings = self._extract_printable_strings(analysis_content)
+        self._append_unique_strings(
+            extracted_strings,
+            extract_image_metadata(analysis_content, detected_type),
+        )
         self._append_decoded_strings(
             extracted_strings,
             text_content,
@@ -67,6 +72,19 @@ class StaticFileAnalyzer:
         ):
             results.append("".join(current_chars))
         return results
+
+    def _append_unique_strings(
+        self,
+        extracted_strings: list[str],
+        additional_strings: list[str],
+    ) -> None:
+        known_strings = set(extracted_strings)
+        for value in additional_strings:
+            if len(extracted_strings) >= _MAX_STRINGS:
+                return
+            if value and value not in known_strings:
+                extracted_strings.append(value)
+                known_strings.add(value)
 
     def _append_decoded_strings(
         self,
