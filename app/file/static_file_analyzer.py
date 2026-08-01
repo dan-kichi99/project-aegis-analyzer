@@ -1,3 +1,4 @@
+from app.file.common_encoding_decoder import decode_common_encoding
 from app.file.file_analysis_result import FileAnalysisResult
 from app.file.file_input import FileInput
 from app.file.file_type_detector import FileTypeDetector
@@ -32,6 +33,10 @@ class StaticFileAnalyzer:
 
         # Printable strings 抽出
         extracted_strings = self._extract_printable_strings(analysis_content)
+        self._append_decoded_strings(
+            extracted_strings,
+            text_content,
+        )
 
         return FileAnalysisResult(
             name=file_input.name,
@@ -62,3 +67,35 @@ class StaticFileAnalyzer:
         ):
             results.append("".join(current_chars))
         return results
+
+    def _append_decoded_strings(
+        self,
+        extracted_strings: list[str],
+        text_content: str | None,
+    ) -> None:
+        original_strings = extracted_strings.copy()
+        candidate_sources = original_strings.copy()
+        if text_content is not None:
+            candidate_sources.extend(text_content.splitlines())
+
+        candidates: list[str] = []
+        seen_candidates: set[str] = set()
+        for source in candidate_sources:
+            for candidate in (source.strip(), *source.split()):
+                if candidate and candidate not in seen_candidates:
+                    seen_candidates.add(candidate)
+                    candidates.append(candidate)
+                    if len(candidates) >= _MAX_STRINGS:
+                        break
+            if len(candidates) >= _MAX_STRINGS:
+                break
+
+        known_strings = set(extracted_strings)
+        for candidate in candidates:
+            if len(extracted_strings) >= _MAX_STRINGS:
+                return
+
+            decoded = decode_common_encoding(candidate)
+            if decoded is not None and decoded not in known_strings:
+                extracted_strings.append(decoded)
+                known_strings.add(decoded)
