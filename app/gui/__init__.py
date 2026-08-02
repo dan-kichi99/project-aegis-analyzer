@@ -1,4 +1,6 @@
+from app.gui.action_approval_view import ActionApprovalView
 from app.gui.agent_result_view import AgentResultView
+from app.gui.code_execution_view import CodeExecutionView
 from app.gui.event_bridge import TkEventBridge
 from app.gui.input_view import AnalysisInputView
 from app.gui.progress_view import AnalysisProgressView
@@ -11,6 +13,6 @@ __all__ = [
     "AnalysisProgressView",
     "AnalysisResultPanel",
     "AnalysisResultView",
+    "CodeExecutionView",
     "TkEventBridge",
 ]
-from app.gui.action_approval_view import ActionApprovalView

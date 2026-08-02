@@ -5,6 +5,15 @@ from app.presentation.action_approval_models import (
 )
 from app.presentation.action_approval_presenter import ActionApprovalPresenter
 from app.presentation.application_presenter import ApplicationPresenter
+from app.presentation.code_execution_models import (
+    CodeApprovalDecision,
+    CodeApprovalRequest,
+    CodeCandidateViewModel,
+    CodeExecutionRequest,
+    CodeExecutionState,
+    ExecutionResultViewModel,
+)
+from app.presentation.code_execution_presenter import CodeExecutionPresenter
 from app.presentation.event_buffer import AnalysisEventBuffer, GuiEventSubscriber
 from app.presentation.input_models import (
     AnalysisInputState,
@@ -40,6 +49,13 @@ __all__ = [
     "ApplicationState",
     "ApplicationStatus",
     "BudgetViewModel",
+    "CodeApprovalDecision",
+    "CodeApprovalRequest",
+    "CodeCandidateViewModel",
+    "CodeExecutionPresenter",
+    "CodeExecutionRequest",
+    "CodeExecutionState",
+    "ExecutionResultViewModel",
     "ExternalToolViewModel",
     "GuiEventSubscriber",
     "InputValidationResult",
