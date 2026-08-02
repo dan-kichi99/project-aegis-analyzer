@@ -1,6 +1,12 @@
 from typing import ClassVar
 
+from app.codegen.generated_code_result import (
+    GeneratedCodeLanguage,
+    GeneratedCodeStatus,
+)
 from app.judge.judge_result import JudgeResult
+
+_CODE_DISPLAY_LIMIT = 5_000
 
 
 class ResultFormatter:
@@ -109,6 +115,39 @@ class ResultFormatter:
             for action in result.next_actions:
                 lines.append(f"- {action}")
 
+            lines.append("")
+
+        if result.generated_code is not None and result.generated_code.items:
+            lines.append("生成コード候補")
+            lines.append("=" * 16)
+            lines.append("")
+            for index, item in enumerate(result.generated_code.items, start=1):
+                language = (
+                    "Python"
+                    if item.language is GeneratedCodeLanguage.PYTHON
+                    else "不明"
+                )
+                status = (
+                    "要レビュー"
+                    if item.status is GeneratedCodeStatus.REVIEW_REQUIRED
+                    else "提案"
+                )
+                lines.append(f"候補 {index}")
+                lines.append(f"言語：{language}")
+                lines.append(f"状態：{status}")
+                if item.purpose:
+                    lines.append(f"目的：{item.purpose}")
+                lines.append("")
+                displayed_code = item.code
+                if len(displayed_code) > _CODE_DISPLAY_LIMIT:
+                    displayed_code = (
+                        displayed_code[:_CODE_DISPLAY_LIMIT] + "\n[表示省略]"
+                    )
+                lines.append(displayed_code)
+                lines.append("")
+            lines.append("注意：")
+            lines.append("このコードはまだ実行されていません。")
+            lines.append("内容を確認してから実行してください。")
             lines.append("")
 
         return "\n".join(lines).rstrip()

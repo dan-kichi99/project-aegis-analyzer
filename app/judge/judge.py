@@ -1,3 +1,4 @@
+from app.codegen.code_block_extractor import CodeBlockExtractor
 from app.judge.confidence_estimator import ConfidenceEstimator
 from app.judge.flag_extractor import FlagExtractor
 from app.judge.gemini_prompt_generator import GeminiPromptGenerator
@@ -18,6 +19,7 @@ class Judge:
         next_action_extractor: NextActionExtractor,
         hypothesis_extractor: HypothesisExtractor,
         gemini_prompt_generator: GeminiPromptGenerator,
+        code_block_extractor: CodeBlockExtractor | None = None,
     ) -> None:
         self._flag_extractor = flag_extractor
         self._confidence_estimator = confidence_estimator
@@ -25,6 +27,7 @@ class Judge:
         self._next_action_extractor = next_action_extractor
         self._hypothesis_extractor = hypothesis_extractor
         self._gemini_prompt_generator = gemini_prompt_generator
+        self._code_block_extractor = code_block_extractor or CodeBlockExtractor()
 
     def evaluate(
         self,
@@ -59,6 +62,8 @@ class Judge:
             category,
             response,
         )
+        extracted_code = self._code_block_extractor.extract(response)
+        generated_code = extracted_code if extracted_code.items else None
 
         # Flagが見つかった場合は「解決済み」として結果を統一する
         if flag is not None:
@@ -82,4 +87,6 @@ class Judge:
             next_actions=next_actions,
             hypothesis=hypothesis,
             gemini_prompt=gemini_prompt,
+            generated_code=generated_code,
         )
+from app.codegen.code_block_extractor import CodeBlockExtractor

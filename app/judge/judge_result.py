@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 
+from app.codegen.generated_code_result import GeneratedCodeResult
+
 
 @dataclass(slots=True)
 class JudgeResult:
@@ -13,3 +15,4 @@ class JudgeResult:
     hypothesis: str | None = None
     next_actions: list[str] | None = None
     gemini_prompt: str | None = None
+    generated_code: GeneratedCodeResult | None = None
