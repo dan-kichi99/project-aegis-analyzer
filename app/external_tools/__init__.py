@@ -1,4 +1,8 @@
+from app.external_tools.exiftool import ExifTool
+from app.external_tools.file_tool import FileTool
+from app.external_tools.strings_tool import StringsTool
 from app.external_tools.tool import BaseExternalTool, ExternalToolType
+from app.external_tools.tool_adapter import TARGET_PATH_METADATA_KEY
 from app.external_tools.tool_policy import (
     AllowedTool,
     ExternalToolInvocation,
@@ -18,8 +22,10 @@ from app.external_tools.tool_result import (
 )
 
 __all__ = [
+    "TARGET_PATH_METADATA_KEY",
     "AllowedTool",
     "BaseExternalTool",
+    "ExifTool",
     "ExternalProcessRequest",
     "ExternalProcessResult",
     "ExternalProcessRunner",
@@ -29,6 +35,8 @@ __all__ = [
     "ExternalToolRequestBuilder",
     "ExternalToolStatus",
     "ExternalToolType",
+    "FileTool",
+    "StringsTool",
     "ToolArgumentKind",
     "ToolArgumentRule",
     "ToolEvidence",
