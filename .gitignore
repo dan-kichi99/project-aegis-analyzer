@@ -24,3 +24,7 @@ Thumbs.db
 # ログ・一時ファイル
 *.log
 *.tmp
+
+# 配布・ビルド生成物
+build/
+dist/
