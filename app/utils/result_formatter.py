@@ -5,6 +5,7 @@ from app.codegen.generated_code_result import (
     GeneratedCodeLanguage,
     GeneratedCodeStatus,
 )
+from app.execution.execution_result import ExecutionStatus, PythonExecutionResult
 from app.judge.judge_result import JudgeResult
 
 _CODE_DISPLAY_LIMIT = 5_000
@@ -187,3 +188,37 @@ class ResultFormatter:
             lines.append("")
 
         return "\n".join(lines).rstrip()
+
+    def format_execution(self, result: PythonExecutionResult) -> str:
+        """制限付きコード実行の結果を安全上の注意とともに表示する。"""
+        status_labels = {
+            ExecutionStatus.COMPLETED: "完了",
+            ExecutionStatus.TIMED_OUT: "タイムアウト",
+            ExecutionStatus.REJECTED: "拒否",
+            ExecutionStatus.FAILED: "失敗",
+        }
+        exit_code = "不明" if result.exit_code is None else str(result.exit_code)
+        lines = [
+            "コード実行結果",
+            "=" * 16,
+            f"状態：{status_labels[result.status]}",
+            f"終了コード：{exit_code}",
+            f"実行時間：{result.duration_seconds:.2f}秒",
+            "",
+            "標準出力：",
+            result.stdout or "なし",
+            "",
+            "標準エラー：",
+            result.stderr or "なし",
+        ]
+        if result.output_truncated:
+            lines.extend(("", "出力は上限を超えたため省略されています。"))
+        lines.extend(
+            (
+                "",
+                "注意：",
+                "この処理は制限付き実行であり、完全なサンドボックスではありません。",
+                "出力中のFlagらしい文字列はまだ正解判定されていません。",
+            )
+        )
+        return "\n".join(lines)

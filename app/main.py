@@ -12,6 +12,8 @@ from app.controller.controller import Controller
 from app.events.analysis_event import AnalysisEvent, AnalysisEventType
 from app.events.cli_event_subscriber import CliEventSubscriber
 from app.events.event_publisher import EventPublisher
+from app.execution.cli_python_execution import CliPythonExecution
+from app.execution.python_execution_runner import PythonExecutionRunner
 from app.judge.confidence_estimator import ConfidenceEstimator
 from app.judge.flag_extractor import FlagExtractor
 from app.judge.gemini_prompt_generator import GeminiPromptGenerator
@@ -101,6 +103,10 @@ def main() -> None:
             approval_cli = CliCodeApproval(CodeApprovalService())
             approved_code = approval_cli.review(result.generated_code)
             result = replace(result, generated_code=approved_code)
+            execution_cli = CliPythonExecution(PythonExecutionRunner())
+            execution_results = execution_cli.run_approved(approved_code)
+            for execution_result in execution_results:
+                print(formatter.format_execution(execution_result))
 
     except RuntimeError as error:
         _publish_failure(publisher, error)

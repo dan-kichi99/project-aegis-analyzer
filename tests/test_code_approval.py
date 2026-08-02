@@ -252,7 +252,7 @@ def test_main_requests_approval_only_after_displaying_generated_result():
         patch("app.main.Config") as config_cls,
         patch("app.main.OpenAIClient"),
         patch("app.main.ChallengeService") as service_cls,
-        patch("builtins.input", side_effect=["question", "", "y"]),
+        patch("builtins.input", side_effect=["question", "", "y", "n"]),
         patch("builtins.print") as print_mock,
     ):
         config_cls.return_value.openai_api_key = "test-key"
