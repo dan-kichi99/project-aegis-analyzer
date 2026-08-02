@@ -96,4 +96,18 @@ class ChallengeService:
                         ),
                     )
 
+            if file_result.xor_result is not None:
+                for candidate in file_result.xor_result.candidates:
+                    flag = self.flag_extractor.extract(candidate.plaintext)
+                    if flag is not None:
+                        return (
+                            flag,
+                            (
+                                f"ファイル「{file_result.name}」の"
+                                "単一バイトXOR解析から検出しました。"
+                                f"鍵：0x{candidate.key:02X} "
+                                f"検出元：{candidate.source}"
+                            ),
+                        )
+
         return None

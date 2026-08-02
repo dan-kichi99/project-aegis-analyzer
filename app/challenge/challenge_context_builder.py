@@ -2,6 +2,7 @@ from app.challenge.challenge_input import ChallengeInput
 from app.file.elf_analysis_result import ElfAnalysisResult
 from app.file.pe_analysis_result import PeAnalysisResult
 from app.file.rev_clue_result import RevClueResult
+from app.solver.xor_result import SingleByteXorResult
 
 _TEXT_CONTENT_LIMIT = 10_000
 _STRINGS_CONTEXT_LIMIT = 50
@@ -56,6 +57,8 @@ class ChallengeContextBuilder:
                 self._append_elf_info(lines, file_res.elf_info)
             if file_res.rev_clues is not None and file_res.rev_clues.clues:
                 self._append_rev_clues(lines, file_res.rev_clues)
+            if file_res.xor_result is not None and file_res.xor_result.candidates:
+                self._append_xor_candidates(lines, file_res.xor_result)
 
         return "\n".join(lines)
 
@@ -107,6 +110,22 @@ class ChallengeContextBuilder:
             severity = severity_labels[clue.severity]
             lines.append(f"- [{severity}] {clue.value}（{clue.category}）")
             lines.append(f"  {clue.description}")
+
+    def _append_xor_candidates(
+        self,
+        lines: list[str],
+        result: SingleByteXorResult,
+    ) -> None:
+        lines.append("\n単一バイトXOR候補：")
+        for candidate in result.candidates:
+            plaintext = candidate.plaintext
+            if len(plaintext) > 300:
+                plaintext = plaintext[:300] + "[省略]"
+            lines.append(
+                f"- key=0x{candidate.key:02X} score={candidate.score:.4f} "
+                f"検出元：{candidate.source}"
+            )
+            lines.append(f"  {plaintext!r}")
 
     def _append_elf_info(
         self,

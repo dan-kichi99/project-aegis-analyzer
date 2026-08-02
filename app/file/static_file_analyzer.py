@@ -6,6 +6,7 @@ from app.file.file_type_detector import FileTypeDetector
 from app.file.image_metadata_extractor import extract_image_metadata
 from app.file.pe_analyzer import PeAnalyzer
 from app.file.rev_clue_analyzer import RevClueAnalyzer
+from app.solver.single_byte_xor_analyzer import SingleByteXorAnalyzer
 
 _ANALYSIS_BYTE_LIMIT = 2_000_000
 _MIN_STRING_LENGTH = 4
@@ -23,6 +24,7 @@ class StaticFileAnalyzer:
         self._pe_analyzer = PeAnalyzer()
         self._elf_analyzer = ElfAnalyzer()
         self._rev_clue_analyzer = RevClueAnalyzer()
+        self._xor_analyzer = SingleByteXorAnalyzer()
 
     def analyze(self, file_input: FileInput) -> FileAnalysisResult:
         detected_type = self.type_detector.detect(file_input)
@@ -63,6 +65,13 @@ class StaticFileAnalyzer:
             if detected_type in {"pe", "elf"}
             else None
         )
+        xor_result = self._xor_analyzer.analyze(
+            content=analysis_content,
+            detected_type=detected_type,
+            extension=file_input.extension,
+            text_content=text_content,
+            strings=extracted_strings,
+        )
 
         return FileAnalysisResult(
             name=file_input.name,
@@ -74,6 +83,7 @@ class StaticFileAnalyzer:
             pe_info=pe_info,
             elf_info=elf_info,
             rev_clues=rev_clues,
+            xor_result=xor_result,
         )
 
     def _extract_printable_strings(self, content: bytes) -> list[str]:
