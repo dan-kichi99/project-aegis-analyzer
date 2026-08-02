@@ -1,3 +1,12 @@
+from app.iteration.agent_iteration_coordinator import (
+    AgentIterationCoordinator,
+    AgentIterationExecutionResult,
+    AgentIterationRequest,
+)
+from app.iteration.agent_iteration_result import (
+    AgentIterationResult,
+    AgentIterationStatus,
+)
 from app.iteration.iteration_action import (
     IterationAction,
     IterationActionStatus,
@@ -37,6 +46,11 @@ from app.iteration.local_analysis_result import (
 )
 
 __all__ = [
+    "AgentIterationCoordinator",
+    "AgentIterationExecutionResult",
+    "AgentIterationRequest",
+    "AgentIterationResult",
+    "AgentIterationStatus",
     "AnalysisHypothesis",
     "BaseLocalAnalysisExecutor",
     "HypothesisReviewExecutor",
