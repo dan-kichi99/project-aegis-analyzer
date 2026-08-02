@@ -1,9 +1,12 @@
 import sys
+from dataclasses import replace
 from datetime import datetime, timezone
 
 from app.analyzer.analyzer import Analyzer
 from app.challenge.challenge_service import ChallengeService
 from app.client.openai_client import OpenAIClient
+from app.codegen.cli_code_approval import CliCodeApproval
+from app.codegen.code_approval import CodeApprovalService
 from app.config import Config
 from app.controller.controller import Controller
 from app.events.analysis_event import AnalysisEvent, AnalysisEventType
@@ -94,6 +97,10 @@ def main() -> None:
 
         formatted_output = formatter.format(result)
         print(formatted_output)
+        if result.generated_code is not None and result.generated_code.items:
+            approval_cli = CliCodeApproval(CodeApprovalService())
+            approved_code = approval_cli.review(result.generated_code)
+            result = replace(result, generated_code=approved_code)
 
     except RuntimeError as error:
         _publish_failure(publisher, error)

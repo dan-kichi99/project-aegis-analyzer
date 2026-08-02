@@ -1,3 +1,10 @@
+from app.codegen.cli_code_approval import CliCodeApproval
+from app.codegen.code_approval import (
+    ApprovalDecision,
+    ApprovalFailureReason,
+    CodeApprovalResult,
+    CodeApprovalService,
+)
 from app.codegen.code_block_extractor import CodeBlockExtractor
 from app.codegen.code_safety_result import (
     CodeRiskCategory,
@@ -14,6 +21,11 @@ from app.codegen.generated_code_result import (
 from app.codegen.python_code_safety_analyzer import PythonCodeSafetyAnalyzer
 
 __all__ = [
+    "ApprovalDecision",
+    "ApprovalFailureReason",
+    "CliCodeApproval",
+    "CodeApprovalResult",
+    "CodeApprovalService",
     "CodeBlockExtractor",
     "CodeRiskCategory",
     "CodeRiskLevel",

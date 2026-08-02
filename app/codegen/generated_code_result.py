@@ -12,6 +12,8 @@ class GeneratedCodeLanguage(str, Enum):
 class GeneratedCodeStatus(str, Enum):
     PROPOSED = "proposed"
     REVIEW_REQUIRED = "review_required"
+    APPROVED = "approved"
+    REJECTED = "rejected"
 
 
 @dataclass(slots=True, frozen=True)

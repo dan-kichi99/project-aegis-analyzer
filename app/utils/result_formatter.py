@@ -14,6 +14,12 @@ _RISK_LABELS = {
     CodeRiskLevel.HIGH: "高",
     CodeRiskLevel.BLOCKED: "実行禁止",
 }
+_STATUS_LABELS = {
+    GeneratedCodeStatus.PROPOSED: "提案",
+    GeneratedCodeStatus.REVIEW_REQUIRED: "要レビュー",
+    GeneratedCodeStatus.APPROVED: "承認済み・未実行",
+    GeneratedCodeStatus.REJECTED: "拒否済み",
+}
 
 
 class ResultFormatter:
@@ -134,11 +140,7 @@ class ResultFormatter:
                     if item.language is GeneratedCodeLanguage.PYTHON
                     else "不明"
                 )
-                status = (
-                    "要レビュー"
-                    if item.status is GeneratedCodeStatus.REVIEW_REQUIRED
-                    else "提案"
-                )
+                status = _STATUS_LABELS[item.status]
                 lines.append(f"候補 {index}")
                 lines.append(f"言語：{language}")
                 lines.append(f"状態：{status}")
@@ -175,6 +177,11 @@ class ResultFormatter:
             lines.append("注意：")
             lines.append("静的検査だけではコードの安全性を保証できません。")
             lines.append("現在、このコードは実行できません。")
+            if any(
+                item.status is GeneratedCodeStatus.APPROVED
+                for item in result.generated_code.items
+            ):
+                lines.append("承認済みですが、コードはまだ実行されていません。")
             lines.append("このコードはまだ実行されていません。")
             lines.append("内容を確認してから実行してください。")
             lines.append("")
