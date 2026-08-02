@@ -107,6 +107,7 @@ class IterationStep:
     proposed_actions: tuple[IterationAction, ...]
     completed_action_ids: tuple[str, ...]
     error_message: str | None
+    feedback_source_index: int | None = None
 
     def __post_init__(self) -> None:
         if self.iteration_number < 1:
@@ -120,6 +121,8 @@ class IterationStep:
             and len(self.error_message) > MAX_ERROR_MESSAGE_CHARACTERS
         ):
             raise ValueError("error_messageは500文字以内で指定してください。")
+        if self.feedback_source_index is not None and self.feedback_source_index < 0:
+            raise ValueError("feedback_source_indexは0以上、またはNoneで指定してください。")
 
 
 @dataclass(slots=True, frozen=True)

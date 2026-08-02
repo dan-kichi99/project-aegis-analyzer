@@ -7,6 +7,15 @@ from app.iteration.agent_iteration_result import (
     AgentIterationResult,
     AgentIterationStatus,
 )
+from app.iteration.execution_feedback_coordinator import (
+    ExecutionFeedbackCoordinator,
+    ExecutionFeedbackExecutionResult,
+    ExecutionFeedbackRequest,
+)
+from app.iteration.execution_feedback_result import (
+    ExecutionFeedbackResult,
+    ExecutionFeedbackStatus,
+)
 from app.iteration.iteration_action import (
     IterationAction,
     IterationActionStatus,
@@ -53,6 +62,11 @@ __all__ = [
     "AgentIterationStatus",
     "AnalysisHypothesis",
     "BaseLocalAnalysisExecutor",
+    "ExecutionFeedbackCoordinator",
+    "ExecutionFeedbackExecutionResult",
+    "ExecutionFeedbackRequest",
+    "ExecutionFeedbackResult",
+    "ExecutionFeedbackStatus",
     "HypothesisReviewExecutor",
     "HypothesisStatus",
     "IterationAction",
