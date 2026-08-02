@@ -68,18 +68,25 @@ class AnalysisWorker:
     def _run(self) -> None:
         try:
             if self._solve_with_cancel is None:
-                result = self._solve(self._question, list(self._file_paths))
+                result = self._solve(
+                    self._question,
+                    list(self._file_paths),
+                )
             else:
                 result = self._solve_with_cancel(
                     self._question,
                     list(self._file_paths),
                     lambda: self.cancel_requested,
                 )
+
             if not self.cancel_requested:
                 self._result = result
+
         except Exception as error:  # noqa: BLE001 - Worker境界でControllerへ保持
             self._error = error
+
         finally:
             self._completed.set()
+
             if self._on_completed is not None:
                 self._on_completed(self)

@@ -2,6 +2,8 @@ import os
 import sys
 from typing import Any
 
+from dotenv import load_dotenv
+
 from app.application.environment_diagnostics import EnvironmentDiagnostics
 from app.application.startup_result import StartupMode, StartupStatus
 from app.application.startup_service import StartupService
@@ -17,9 +19,12 @@ def _ai_client() -> BaseAIClient:
     from app.client.openai_client import OpenAIClient
 
     api_key = os.getenv("OPENAI_API_KEY")
+
     if api_key is None or not api_key.strip():
         return _UnavailableAIClient()
+
     model = os.getenv("OPENAI_MODEL")
+
     return OpenAIClient(
         api_key=api_key.strip(),
         model=model.strip() if model and model.strip() else "gpt-4o-mini",
@@ -66,18 +71,21 @@ def _build_application(
     analyzer = Analyzer()
     prompt_manager = PromptManager()
     flag_extractor = FlagExtractor()
+
     agents = (
         CryptoAgent(ai_client, flag_extractor, prompt_manager),
         RevAgent(ai_client, flag_extractor, prompt_manager),
         WebAgent(ai_client, flag_extractor, prompt_manager),
         ForensicsAgent(ai_client, flag_extractor, prompt_manager),
     )
+
     coordinator = AgentCoordinator(
         planner=AgentPlanner(),
         router=AgentRouter(agents),
         aggregator=AgentResultAggregator(),
         event_publisher=publisher,
     )
+
     judge = Judge(
         flag_extractor=flag_extractor,
         confidence_estimator=ConfidenceEstimator(),
@@ -86,7 +94,8 @@ def _build_application(
         hypothesis_extractor=HypothesisExtractor(),
         gemini_prompt_generator=GeminiPromptGenerator(),
     )
-    controller = ApplicationController(
+
+    application_controller = ApplicationController(
         ChallengeService(
             controller=Controller(
                 analyzer=analyzer,
@@ -103,7 +112,9 @@ def _build_application(
         ),
         publisher,
     )
+
     event_buffer = AnalysisEventBuffer()
+
     shell = ProjectAegisApplicationShell(
         root,
         input_presenter=AnalysisInputPresenter(),
@@ -111,14 +122,19 @@ def _build_application(
         action_approval_presenter=ActionApprovalPresenter(),
         code_execution_presenter=CodeExecutionPresenter(),
         event_buffer=event_buffer,
-        on_analysis_requested=controller.handle_analysis_request,
-        on_action_decision=controller.handle_action_decision,
-        on_code_decision=controller.handle_code_decision,
-        on_code_execution_requested=controller.handle_code_execution_request,
-        on_cancel_requested=controller.cancel_analysis,
+        on_analysis_requested=application_controller.handle_analysis_request,
+        on_action_decision=application_controller.handle_action_decision,
+        on_code_decision=application_controller.handle_code_decision,
+        on_code_execution_requested=(
+            application_controller.handle_code_execution_request
+        ),
+        on_cancel_requested=application_controller.cancel_analysis,
+        result_provider=lambda: application_controller.last_result,
     )
-    controller.connect_shell(shell)
-    return shell, controller
+
+    application_controller.connect_shell(shell)
+
+    return shell, application_controller
 
 
 def _create_root() -> Any:
@@ -128,31 +144,53 @@ def _create_root() -> Any:
 
 
 def main() -> int:
-    startup = StartupService(diagnostics=EnvironmentDiagnostics()).check(StartupMode.GUI)
-    if startup.status in {StartupStatus.BLOCKED, StartupStatus.FAILED}:
+    load_dotenv()
+
+    startup = StartupService(
+        diagnostics=EnvironmentDiagnostics()
+    ).check(StartupMode.GUI)
+
+    if startup.status in {
+        StartupStatus.BLOCKED,
+        StartupStatus.FAILED,
+    }:
         print(startup.message, file=sys.stderr)
         return startup.exit_code
+
     if startup.status is StartupStatus.DEGRADED:
         print(startup.message, file=sys.stderr)
+
     root: Any | None = None
     shell: Any | None = None
     controller: Any | None = None
+
     try:
         root = _create_root()
         root.title("Project Aegis")
+
         shell, controller = _build_application(root)
+
         shell.frame.pack(fill="both", expand=True)
         shell.start_event_bridge()
+
         root.mainloop()
+
         return 0
+
     except Exception:  # noqa: BLE001 - GUI entrypoint hides environment details
-        print("GUIの起動中にエラーが発生しました。", file=sys.stderr)
+        print(
+            "GUIの起動中にエラーが発生しました。",
+            file=sys.stderr,
+        )
         return 1
+
     finally:
         if shell is not None:
             shell.stop_event_bridge()
+
         if controller is not None:
             controller.disconnect_shell()
+
         if root is not None:
             root.destroy()
 
