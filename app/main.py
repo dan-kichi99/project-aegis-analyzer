@@ -13,6 +13,7 @@ from app.events.analysis_event import AnalysisEvent, AnalysisEventType
 from app.events.cli_event_subscriber import CliEventSubscriber
 from app.events.event_publisher import EventPublisher
 from app.execution.cli_python_execution import CliPythonExecution
+from app.execution.execution_result_analyzer import ExecutionResultAnalyzer
 from app.execution.python_execution_runner import PythonExecutionRunner
 from app.judge.confidence_estimator import ConfidenceEstimator
 from app.judge.flag_extractor import FlagExtractor
@@ -105,8 +106,11 @@ def main() -> None:
             result = replace(result, generated_code=approved_code)
             execution_cli = CliPythonExecution(PythonExecutionRunner())
             execution_results = execution_cli.run_approved(approved_code)
+            execution_analyzer = ExecutionResultAnalyzer(FlagExtractor())
             for execution_result in execution_results:
                 print(formatter.format_execution(execution_result))
+                execution_analysis = execution_analyzer.analyze(execution_result)
+                print(formatter.format_execution_analysis(execution_analysis))
 
     except RuntimeError as error:
         _publish_failure(publisher, error)

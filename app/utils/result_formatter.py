@@ -5,6 +5,10 @@ from app.codegen.generated_code_result import (
     GeneratedCodeLanguage,
     GeneratedCodeStatus,
 )
+from app.execution.execution_analysis_result import (
+    ExecutionAnalysisResult,
+    ExecutionOutputSource,
+)
 from app.execution.execution_result import ExecutionStatus, PythonExecutionResult
 from app.judge.judge_result import JudgeResult
 
@@ -219,6 +223,60 @@ class ResultFormatter:
                 "注意：",
                 "この処理は制限付き実行であり、完全なサンドボックスではありません。",
                 "出力中のFlagらしい文字列はまだ正解判定されていません。",
+            )
+        )
+        return "\n".join(lines)
+
+    def format_execution_analysis(
+        self,
+        result: ExecutionAnalysisResult,
+    ) -> str:
+        """実行出力のFlag候補を正解と断定せず表示する。"""
+        lines = [
+            "実行結果解析",
+            "=" * 16,
+            f"実行成功：{'はい' if result.successful_execution else 'いいえ'}",
+            f"Flag候補数：{len(result.flag_candidates)}",
+            f"主要候補：{result.primary_flag or 'なし'}",
+            "",
+        ]
+        if result.flag_candidates:
+            lines.append("実行出力からFlag候補を検出しました。")
+            lines.append("正解とは限らないため、問題内容と照合してください。")
+            lines.append("")
+            lines.append("Flag候補：")
+            for candidate in result.flag_candidates:
+                source = (
+                    "標準出力"
+                    if candidate.source is ExecutionOutputSource.STDOUT
+                    else "標準エラー"
+                )
+                lines.append(f"- {candidate.flag}")
+                lines.append(f"  検出元：{source}")
+        else:
+            lines.append("実行出力からFlag候補は検出されませんでした。")
+        if not result.successful_execution and result.execution.started:
+            lines.extend(
+                (
+                    "",
+                    "実行は正常終了していません。",
+                    "表示されたFlag候補は途中出力の可能性があります。",
+                )
+            )
+        if result.execution.output_truncated:
+            lines.extend(
+                (
+                    "",
+                    "出力が省略されているため、",
+                    "未表示部分に別のFlag候補が存在する可能性があります。",
+                )
+            )
+        lines.extend(
+            (
+                "",
+                "注意：",
+                "実行出力に含まれるFlag形式の文字列を候補として表示しています。",
+                "正解Flagであることは保証されません。",
             )
         )
         return "\n".join(lines)
