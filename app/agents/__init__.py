@@ -7,6 +7,7 @@ from app.agents.agent_result import (
     AgentType,
 )
 from app.agents.crypto_agent import CryptoAgent
+from app.agents.forensics_agent import ForensicsAgent
 from app.agents.rev_agent import RevAgent
 from app.agents.web_agent import WebAgent
 
@@ -18,6 +19,7 @@ __all__ = [
     "AgentType",
     "BaseAgent",
     "CryptoAgent",
+    "ForensicsAgent",
     "RevAgent",
     "WebAgent",
 ]
