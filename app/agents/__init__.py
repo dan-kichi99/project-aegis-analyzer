@@ -6,6 +6,8 @@ from app.agents.agent_result import (
     AgentStatus,
     AgentType,
 )
+from app.agents.agent_route_result import AgentRouteResult, AgentRouteStatus
+from app.agents.agent_router import AgentRouter
 from app.agents.crypto_agent import CryptoAgent
 from app.agents.forensics_agent import ForensicsAgent
 from app.agents.rev_agent import RevAgent
@@ -15,6 +17,9 @@ __all__ = [
     "AgentEvidence",
     "AgentInput",
     "AgentResult",
+    "AgentRouteResult",
+    "AgentRouteStatus",
+    "AgentRouter",
     "AgentStatus",
     "AgentType",
     "BaseAgent",
