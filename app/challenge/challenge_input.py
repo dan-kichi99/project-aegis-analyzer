@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 
 from app.file.file_analysis_result import FileAnalysisResult
+from app.solver.rsa_result import RsaResult
 
 
 @dataclass(slots=True)
@@ -9,3 +10,4 @@ class ChallengeInput:
 
     question: str
     files: list[FileAnalysisResult] = field(default_factory=list)
+    rsa_result: RsaResult | None = None

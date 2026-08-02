@@ -9,6 +9,7 @@ from app.file.static_file_analyzer import StaticFileAnalyzer
 from app.file.zip_archive_analyzer import ZipArchiveAnalyzer
 from app.judge.flag_extractor import FlagExtractor
 from app.judge.judge_result import JudgeResult
+from app.solver.rsa_analyzer import RsaAnalyzer
 
 
 class ChallengeService:
@@ -27,6 +28,7 @@ class ChallengeService:
         self.file_analyzer = file_analyzer or StaticFileAnalyzer()
         self._zip_analyzer = ZipArchiveAnalyzer(self.file_analyzer)
         self.flag_extractor = FlagExtractor()
+        self._rsa_analyzer = RsaAnalyzer()
 
     def solve(
         self,
@@ -50,6 +52,7 @@ class ChallengeService:
             question=question,
             files=analysis_results,
         )
+        challenge.rsa_result = self._rsa_analyzer.analyze(challenge)
 
         local_result = self._find_local_flag(challenge)
         if local_result is not None:
@@ -124,5 +127,20 @@ class ChallengeService:
                                 f"検出元：{candidate.source}"
                             ),
                         )
+
+        if challenge.rsa_result is not None:
+            for attempt in challenge.rsa_result.attempts:
+                if attempt.plaintext is None:
+                    continue
+                flag = self.flag_extractor.extract(attempt.plaintext)
+                if flag is not None:
+                    return (
+                        flag,
+                        (
+                            f"{challenge.rsa_result.parameters.source}の"
+                            "RSA復号結果から検出しました。"
+                            f"方式：{attempt.method}"
+                        ),
+                    )
 
         return None

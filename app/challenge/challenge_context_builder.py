@@ -3,6 +3,7 @@ from app.file.elf_analysis_result import ElfAnalysisResult
 from app.file.pe_analysis_result import PeAnalysisResult
 from app.file.rev_clue_result import RevClueResult
 from app.solver.caesar_result import CaesarResult
+from app.solver.rsa_result import RsaResult
 from app.solver.xor_result import SingleByteXorResult
 
 _TEXT_CONTENT_LIMIT = 10_000
@@ -26,6 +27,8 @@ class ChallengeContextBuilder:
 
         if not challenge.files:
             lines.append("なし")
+            if challenge.rsa_result is not None:
+                self._append_rsa_result(lines, challenge.rsa_result)
             return "\n".join(lines)
 
         for index, file_res in enumerate(challenge.files, start=1):
@@ -65,6 +68,9 @@ class ChallengeContextBuilder:
                 and file_res.caesar_result.candidates
             ):
                 self._append_caesar_candidates(lines, file_res.caesar_result)
+
+        if challenge.rsa_result is not None:
+            self._append_rsa_result(lines, challenge.rsa_result)
 
         return "\n".join(lines)
 
@@ -148,6 +154,32 @@ class ChallengeContextBuilder:
                 f"検出元：{candidate.source}"
             )
             lines.append(f"  {plaintext!r}")
+
+    def _append_rsa_result(
+        self,
+        lines: list[str],
+        result: RsaResult,
+    ) -> None:
+        parameters = result.parameters
+        lines.append("\nRSA診断：")
+        lines.append(f"- 検出元：{parameters.source}")
+        for name in ("n", "e", "c", "p", "q", "d", "phi"):
+            value = getattr(parameters, name)
+            if value is not None:
+                displayed = str(value)
+                if len(displayed) > 200:
+                    displayed = displayed[:200] + "[省略]"
+                lines.append(f"- {name}：{displayed}")
+        for attempt in result.attempts:
+            lines.append(f"- 方式：{attempt.method}")
+            lines.append(f"- 成否：{'成功' if attempt.success else '失敗'}")
+            lines.append(f"- 詳細：{attempt.detail}")
+        if result.plaintext is not None:
+            plaintext = result.plaintext
+            if len(plaintext) > 300:
+                plaintext = plaintext[:300] + "[省略]"
+            lines.append(f"- 復号結果：{plaintext!r}")
+        lines.append(f"- Flag：{'検出' if result.contains_flag else '未検出'}")
 
     def _append_elf_info(
         self,
