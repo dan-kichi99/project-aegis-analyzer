@@ -22,6 +22,17 @@ from app.iteration.iteration_action import (
     IterationActionType,
 )
 from app.iteration.iteration_action_planner import IterationActionPlanner
+from app.iteration.iteration_budget import (
+    BudgetDecision,
+    BudgetDenialReason,
+    BudgetEvaluation,
+    IterationActionCost,
+    IterationBudget,
+)
+from app.iteration.iteration_budget_manager import (
+    IterationActionCostResolver,
+    IterationBudgetManager,
+)
 from app.iteration.iteration_coordinator import (
     IterationCoordinator,
     IterationExecutionResult,
@@ -44,6 +55,7 @@ from app.iteration.iteration_stop_result import (
     IterationStopContext,
     IterationStopEvaluation,
 )
+from app.iteration.iteration_usage import IterationUsage
 from app.iteration.local_analysis_executor import (
     BaseLocalAnalysisExecutor,
     HypothesisReviewExecutor,
@@ -62,6 +74,9 @@ __all__ = [
     "AgentIterationStatus",
     "AnalysisHypothesis",
     "BaseLocalAnalysisExecutor",
+    "BudgetDecision",
+    "BudgetDenialReason",
+    "BudgetEvaluation",
     "ExecutionFeedbackCoordinator",
     "ExecutionFeedbackExecutionResult",
     "ExecutionFeedbackRequest",
@@ -70,9 +85,13 @@ __all__ = [
     "HypothesisReviewExecutor",
     "HypothesisStatus",
     "IterationAction",
+    "IterationActionCost",
+    "IterationActionCostResolver",
     "IterationActionPlanner",
     "IterationActionStatus",
     "IterationActionType",
+    "IterationBudget",
+    "IterationBudgetManager",
     "IterationCoordinator",
     "IterationDecision",
     "IterationExecutionResult",
@@ -85,6 +104,7 @@ __all__ = [
     "IterationStopEvaluation",
     "IterationStopEvaluator",
     "IterationStopReason",
+    "IterationUsage",
     "LocalAnalysisRequest",
     "LocalAnalysisResult",
     "LocalAnalysisStatus",
