@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from enum import Enum
 
+from app.codegen.code_safety_result import CodeSafetyResult
+
 
 class GeneratedCodeLanguage(str, Enum):
     PYTHON = "python"
@@ -19,6 +21,7 @@ class GeneratedCode:
     purpose: str | None
     source_index: int
     status: GeneratedCodeStatus
+    safety: CodeSafetyResult | None = None
 
 
 @dataclass(slots=True, frozen=True)

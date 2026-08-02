@@ -1,5 +1,6 @@
 from typing import ClassVar
 
+from app.codegen.code_safety_result import CodeRiskLevel
 from app.codegen.generated_code_result import (
     GeneratedCodeLanguage,
     GeneratedCodeStatus,
@@ -7,6 +8,12 @@ from app.codegen.generated_code_result import (
 from app.judge.judge_result import JudgeResult
 
 _CODE_DISPLAY_LIMIT = 5_000
+_RISK_LABELS = {
+    CodeRiskLevel.LOW: "低",
+    CodeRiskLevel.MEDIUM: "中",
+    CodeRiskLevel.HIGH: "高",
+    CodeRiskLevel.BLOCKED: "実行禁止",
+}
 
 
 class ResultFormatter:
@@ -145,7 +152,29 @@ class ResultFormatter:
                     )
                 lines.append(displayed_code)
                 lines.append("")
+                if item.safety is not None:
+                    lines.append("安全性検査：")
+                    lines.append(
+                        f"- 総合危険度：{_RISK_LABELS[item.safety.overall_risk]}"
+                    )
+                    if item.safety.findings:
+                        for finding in item.safety.findings:
+                            risk = _RISK_LABELS[finding.risk_level]
+                            location = (
+                                f"{finding.line_number}行目 "
+                                if finding.line_number is not None
+                                else ""
+                            )
+                            symbol = f"{finding.symbol} " if finding.symbol else ""
+                            lines.append(
+                                f"- [{risk}] {location}{symbol}{finding.message}"
+                            )
+                    else:
+                        lines.append("- 検出された危険項目はありません。")
+                    lines.append("")
             lines.append("注意：")
+            lines.append("静的検査だけではコードの安全性を保証できません。")
+            lines.append("現在、このコードは実行できません。")
             lines.append("このコードはまだ実行されていません。")
             lines.append("内容を確認してから実行してください。")
             lines.append("")

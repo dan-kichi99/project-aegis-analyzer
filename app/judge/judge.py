@@ -1,4 +1,17 @@
+from dataclasses import replace
+
 from app.codegen.code_block_extractor import CodeBlockExtractor
+from app.codegen.code_safety_result import (
+    CodeRiskCategory,
+    CodeRiskLevel,
+    CodeSafetyFinding,
+    CodeSafetyResult,
+)
+from app.codegen.generated_code_result import (
+    GeneratedCodeLanguage,
+    GeneratedCodeResult,
+)
+from app.codegen.python_code_safety_analyzer import PythonCodeSafetyAnalyzer
 from app.judge.confidence_estimator import ConfidenceEstimator
 from app.judge.flag_extractor import FlagExtractor
 from app.judge.gemini_prompt_generator import GeminiPromptGenerator
@@ -20,6 +33,7 @@ class Judge:
         hypothesis_extractor: HypothesisExtractor,
         gemini_prompt_generator: GeminiPromptGenerator,
         code_block_extractor: CodeBlockExtractor | None = None,
+        code_safety_analyzer: PythonCodeSafetyAnalyzer | None = None,
     ) -> None:
         self._flag_extractor = flag_extractor
         self._confidence_estimator = confidence_estimator
@@ -28,6 +42,9 @@ class Judge:
         self._hypothesis_extractor = hypothesis_extractor
         self._gemini_prompt_generator = gemini_prompt_generator
         self._code_block_extractor = code_block_extractor or CodeBlockExtractor()
+        self._code_safety_analyzer = (
+            code_safety_analyzer or PythonCodeSafetyAnalyzer()
+        )
 
     def evaluate(
         self,
@@ -63,7 +80,7 @@ class Judge:
             response,
         )
         extracted_code = self._code_block_extractor.extract(response)
-        generated_code = extracted_code if extracted_code.items else None
+        generated_code = self._inspect_generated_code(extracted_code)
 
         # Flagが見つかった場合は「解決済み」として結果を統一する
         if flag is not None:
@@ -89,4 +106,30 @@ class Judge:
             gemini_prompt=gemini_prompt,
             generated_code=generated_code,
         )
-from app.codegen.code_block_extractor import CodeBlockExtractor
+
+    def _inspect_generated_code(
+        self,
+        extracted: GeneratedCodeResult,
+    ) -> GeneratedCodeResult | None:
+        if not extracted.items:
+            return None
+        inspected = []
+        for item in extracted.items:
+            if item.language is GeneratedCodeLanguage.PYTHON:
+                safety = self._code_safety_analyzer.analyze(item.code)
+            else:
+                safety = CodeSafetyResult(
+                    parseable=False,
+                    overall_risk=CodeRiskLevel.BLOCKED,
+                    findings=(
+                        CodeSafetyFinding(
+                            category=CodeRiskCategory.UNKNOWN,
+                            risk_level=CodeRiskLevel.BLOCKED,
+                            message="Python以外のため静的検査の対象外です。",
+                            line_number=None,
+                            symbol=None,
+                        ),
+                    ),
+                )
+            inspected.append(replace(item, safety=safety))
+        return GeneratedCodeResult(items=tuple(inspected))
