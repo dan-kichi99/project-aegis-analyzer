@@ -2,13 +2,18 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from math import isfinite
+from pathlib import Path
 
 from app.agents.agent_aggregate_result import AgentAggregateResult
 from app.agents.agent_input import AgentInput
+from app.challenge.challenge_input import ChallengeInput
 from app.execution.execution_analysis_result import ExecutionAnalysisResult
 from app.iteration.agent_iteration_coordinator import AgentIterationExecutionResult
 from app.iteration.execution_feedback_coordinator import (
     ExecutionFeedbackExecutionResult,
+)
+from app.iteration.external_tool_iteration_result import (
+    ExternalToolIterationExecutionResult,
 )
 from app.iteration.iteration_action import IterationAction
 from app.iteration.iteration_budget import BudgetEvaluation, IterationBudget
@@ -49,6 +54,8 @@ class IterationRunContext:
     user_requested_stop: bool = False
     fatal_error: str | None = None
     repeated_state: bool | None = None
+    challenge: ChallengeInput | None = None
+    working_directory: Path | None = None
 
     def __post_init__(self) -> None:
         if (
@@ -81,6 +88,7 @@ class IterationOrchestrationResult:
     local_execution: IterationExecutionResult | None = None
     agent_execution: AgentIterationExecutionResult | None = None
     feedback_execution: ExecutionFeedbackExecutionResult | None = None
+    external_tool_execution: ExternalToolIterationExecutionResult | None = None
 
     def __post_init__(self) -> None:
         if len(self.message) > MAX_ORCHESTRATION_MESSAGE_CHARACTERS:
@@ -91,6 +99,7 @@ class IterationOrchestrationResult:
                 self.local_execution,
                 self.agent_execution,
                 self.feedback_execution,
+                self.external_tool_execution,
             )
         ) > 1:
             raise ValueError("Execution結果は同時に1件だけ保持できます。")

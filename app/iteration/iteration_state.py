@@ -1,10 +1,16 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
+from typing import TYPE_CHECKING
 
 from app.agents.agent_aggregate_result import AgentAggregateResult
 from app.execution.execution_analysis_result import ExecutionAnalysisResult
 from app.iteration.iteration_action import IterationAction, IterationActionStatus
+
+if TYPE_CHECKING:
+    from app.iteration.external_tool_iteration_result import ExternalToolIterationResult
 
 MAX_STEPS = 100
 MAX_HYPOTHESES = 100
@@ -108,6 +114,7 @@ class IterationStep:
     completed_action_ids: tuple[str, ...]
     error_message: str | None
     feedback_source_index: int | None = None
+    external_tool_result: ExternalToolIterationResult | None = None
 
     def __post_init__(self) -> None:
         if self.iteration_number < 1:

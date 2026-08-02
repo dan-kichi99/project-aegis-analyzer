@@ -2,6 +2,7 @@ from dataclasses import replace
 from math import isfinite
 
 from app.agents.agent_result import AgentType
+from app.external_tools.tool import ExternalToolType
 from app.iteration.iteration_action import (
     IterationAction,
     IterationActionStatus,
@@ -35,6 +36,19 @@ class IterationActionCostResolver:
         if action.action_type is IterationActionType.RUN_AGENT:
             agent_type = self._agent_type(action)
             return IterationActionCost(1, 1, 1, 1, 0, 0, agent_type)
+        if action.action_type is IterationActionType.RUN_EXTERNAL_TOOL:
+            tool_type = self._tool_type(action)
+            return IterationActionCost(
+                1,
+                1,
+                0,
+                0,
+                0,
+                0,
+                None,
+                external_tool_runs=1,
+                target_tool=tool_type,
+            )
         raise UnsupportedActionError(
             f"Action「{action.action_type.value}」は予算評価対象外です。"
         )
@@ -54,6 +68,22 @@ class IterationActionCostResolver:
                 "RUN_AGENTのtarget_agentとmetadata agent_typeが一致しません。"
             )
         return agent_type
+
+    def _tool_type(self, action: IterationAction) -> ExternalToolType:
+        raw_type = action.metadata.get("tool_type")
+        try:
+            tool_type = (
+                raw_type
+                if isinstance(raw_type, ExternalToolType)
+                else ExternalToolType(raw_type)
+            )
+        except (TypeError, ValueError) as error:
+            raise InvalidActionCostError(
+                "RUN_EXTERNAL_TOOL metadataに有効なtool_typeが必要です。"
+            ) from error
+        if tool_type is ExternalToolType.CUSTOM:
+            raise InvalidActionCostError("CUSTOM Toolは予算評価できません。")
+        return tool_type
 
 
 class IterationBudgetManager:
@@ -120,6 +150,13 @@ class IterationBudgetManager:
                 > budget.max_execution_feedbacks
             ):
                 reasons.append(BudgetDenialReason.EXECUTION_FEEDBACK_LIMIT_REACHED)
+            if projected.external_tool_runs_used > budget.max_external_tool_runs:
+                reasons.append(BudgetDenialReason.EXTERNAL_TOOL_LIMIT_REACHED)
+            if cost.target_tool is not None and (
+                projected.tool_counts.get(cost.target_tool, 0)
+                > budget.max_runs_per_tool
+            ):
+                reasons.append(BudgetDenialReason.TOOL_TYPE_LIMIT_REACHED)
         if cost_reason is not None:
             reasons.append(cost_reason)
 
@@ -162,6 +199,11 @@ class IterationBudgetManager:
             agent_counts[cost.target_agent] = (
                 agent_counts.get(cost.target_agent, 0) + cost.agent_runs
             )
+        tool_counts = dict(usage.tool_counts)
+        if cost.target_tool is not None:
+            tool_counts[cost.target_tool] = (
+                tool_counts.get(cost.target_tool, 0) + cost.external_tool_runs
+            )
         return replace(
             usage,
             iterations_used=usage.iterations_used + cost.iterations,
@@ -172,9 +214,13 @@ class IterationBudgetManager:
             execution_feedbacks_used=(
                 usage.execution_feedbacks_used + cost.execution_feedbacks
             ),
+            external_tool_runs_used=(
+                usage.external_tool_runs_used + cost.external_tool_runs
+            ),
             elapsed_seconds=elapsed_seconds,
             action_counts=action_counts,
             agent_counts=agent_counts,
+            tool_counts=tool_counts,
         )
 
     def _validate_elapsed(

@@ -4,6 +4,7 @@ from math import isfinite
 from types import MappingProxyType
 
 from app.agents.agent_result import AgentType
+from app.external_tools.tool import ExternalToolType
 from app.iteration.iteration_action import IterationActionType
 
 
@@ -23,6 +24,8 @@ class IterationUsage:
     elapsed_seconds: float = 0.0
     action_counts: Mapping[IterationActionType, int] = field(default_factory=dict)
     agent_counts: Mapping[AgentType, int] = field(default_factory=dict)
+    external_tool_runs_used: int = 0
+    tool_counts: Mapping[ExternalToolType, int] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         for name in (
@@ -32,6 +35,7 @@ class IterationUsage:
             "ai_calls_used",
             "local_analyses_used",
             "execution_feedbacks_used",
+            "external_tool_runs_used",
         ):
             _validate_count(getattr(self, name), name)
         if (
@@ -43,10 +47,13 @@ class IterationUsage:
             raise ValueError("elapsed_secondsは0以上の有限数で指定してください。")
         actions = dict(self.action_counts)
         agents = dict(self.agent_counts)
+        tools = dict(self.tool_counts)
         self._validate_mapping(actions, IterationActionType, "action_counts")
         self._validate_mapping(agents, AgentType, "agent_counts")
+        self._validate_mapping(tools, ExternalToolType, "tool_counts")
         object.__setattr__(self, "action_counts", MappingProxyType(actions))
         object.__setattr__(self, "agent_counts", MappingProxyType(agents))
+        object.__setattr__(self, "tool_counts", MappingProxyType(tools))
 
     def _validate_mapping(self, values: dict, key_type: type, name: str) -> None:
         for key, value in values.items():

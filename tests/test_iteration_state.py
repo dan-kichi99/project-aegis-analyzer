@@ -128,7 +128,8 @@ def test_all_required_enum_values_are_defined():
     assert {item.value for item in IterationStepStatus} == {
         "completed", "skipped", "failed"
     }
-    assert len(IterationActionType) == 8
+    assert len(IterationActionType) == 9
+    assert IterationActionType.RUN_EXTERNAL_TOOL.value == "run_external_tool"
     assert len(IterationActionStatus) == 6
     assert len(IterationStopReason) == 8
     assert len(HypothesisStatus) == 4

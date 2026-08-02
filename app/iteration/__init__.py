@@ -16,6 +16,15 @@ from app.iteration.execution_feedback_result import (
     ExecutionFeedbackResult,
     ExecutionFeedbackStatus,
 )
+from app.iteration.external_tool_evidence_formatter import ExternalToolEvidenceFormatter
+from app.iteration.external_tool_iteration_coordinator import (
+    ExternalToolIterationCoordinator,
+)
+from app.iteration.external_tool_iteration_result import (
+    ExternalToolIterationExecutionResult,
+    ExternalToolIterationResult,
+    ExternalToolIterationStatus,
+)
 from app.iteration.iteration_action import (
     IterationAction,
     IterationActionStatus,
@@ -88,6 +97,11 @@ __all__ = [
     "ExecutionFeedbackRequest",
     "ExecutionFeedbackResult",
     "ExecutionFeedbackStatus",
+    "ExternalToolEvidenceFormatter",
+    "ExternalToolIterationCoordinator",
+    "ExternalToolIterationExecutionResult",
+    "ExternalToolIterationResult",
+    "ExternalToolIterationStatus",
     "HypothesisReviewExecutor",
     "HypothesisStatus",
     "IterationAction",

@@ -18,6 +18,7 @@ class IterationActionType(str, Enum):
     REQUEST_USER_INPUT = "request_user_input"
     MANUAL_REVIEW = "manual_review"
     STOP = "stop"
+    RUN_EXTERNAL_TOOL = "run_external_tool"
 
 
 class IterationActionStatus(str, Enum):

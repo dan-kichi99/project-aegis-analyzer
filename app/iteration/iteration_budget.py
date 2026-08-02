@@ -3,6 +3,7 @@ from enum import Enum
 from math import isfinite
 
 from app.agents.agent_result import AgentType
+from app.external_tools.tool import ExternalToolType
 from app.iteration.iteration_usage import IterationUsage
 
 MAX_BUDGET_MESSAGE_CHARACTERS = 500
@@ -23,6 +24,8 @@ class IterationBudget:
     max_execution_feedbacks: int = 10
     max_elapsed_seconds: float = 300.0
     max_runs_per_agent: int = 2
+    max_external_tool_runs: int = 10
+    max_runs_per_tool: int = 2
 
     def __post_init__(self) -> None:
         _require_integer(self.max_iterations, "max_iterations", 1)
@@ -41,6 +44,8 @@ class IterationBudget:
         ):
             raise ValueError("max_elapsed_secondsは0より大きい有限数で指定してください。")
         _require_integer(self.max_runs_per_agent, "max_runs_per_agent", 1)
+        _require_integer(self.max_external_tool_runs, "max_external_tool_runs", 0)
+        _require_integer(self.max_runs_per_tool, "max_runs_per_tool", 1)
 
 
 class BudgetDecision(str, Enum):
@@ -61,6 +66,8 @@ class BudgetDenialReason(str, Enum):
     EXECUTION_FEEDBACK_LIMIT_REACHED = "execution_feedback_limit_reached"
     UNSUPPORTED_ACTION = "unsupported_action"
     INVALID_COST = "invalid_cost"
+    EXTERNAL_TOOL_LIMIT_REACHED = "external_tool_limit_reached"
+    TOOL_TYPE_LIMIT_REACHED = "tool_type_limit_reached"
 
 
 @dataclass(slots=True, frozen=True)
@@ -96,6 +103,8 @@ class IterationActionCost:
     local_analyses: int
     execution_feedbacks: int
     target_agent: AgentType | None
+    external_tool_runs: int = 0
+    target_tool: ExternalToolType | None = None
 
     def __post_init__(self) -> None:
         for name in (
@@ -105,7 +114,14 @@ class IterationActionCost:
             "ai_calls",
             "local_analyses",
             "execution_feedbacks",
+            "external_tool_runs",
         ):
             _require_integer(getattr(self, name), name, 0)
-        if self.target_agent is not None and not isinstance(self.target_agent, AgentType):
+        if self.target_tool is not None and not isinstance(
+            self.target_tool, ExternalToolType
+        ):
+            raise ValueError("target_tool must be ExternalToolType or None.")
+        if self.target_agent is not None and not isinstance(
+            self.target_agent, AgentType
+        ):
             raise ValueError("target_agentはAgentTypeまたはNoneで指定してください。")

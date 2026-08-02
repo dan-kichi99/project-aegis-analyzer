@@ -2,6 +2,10 @@ from app.iteration.agent_iteration_coordinator import AgentIterationCoordinator
 from app.iteration.agent_iteration_result import AgentIterationStatus
 from app.iteration.execution_feedback_coordinator import ExecutionFeedbackCoordinator
 from app.iteration.execution_feedback_result import ExecutionFeedbackStatus
+from app.iteration.external_tool_iteration_coordinator import (
+    ExternalToolIterationCoordinator,
+)
+from app.iteration.external_tool_iteration_result import ExternalToolIterationStatus
 from app.iteration.iteration_action import (
     IterationAction,
     IterationActionStatus,
@@ -45,6 +49,7 @@ class IterationOrchestrator:
         local_coordinator: IterationCoordinator,
         agent_coordinator: AgentIterationCoordinator,
         feedback_coordinator: ExecutionFeedbackCoordinator,
+        external_tool_coordinator: ExternalToolIterationCoordinator | None = None,
     ) -> None:
         self.state_manager = state_manager
         self.action_planner = action_planner
@@ -53,6 +58,7 @@ class IterationOrchestrator:
         self.local_coordinator = local_coordinator
         self.agent_coordinator = agent_coordinator
         self.feedback_coordinator = feedback_coordinator
+        self.external_tool_coordinator = external_tool_coordinator
 
     def run_once(self, context: IterationRunContext) -> IterationOrchestrationResult:
         initial_stop = self._evaluate_stop(context, context.session, context.usage)
@@ -152,6 +158,7 @@ class IterationOrchestrator:
         local_execution = None
         agent_execution = None
         feedback_execution = None
+        external_tool_execution = None
         if action.action_type is IterationActionType.RUN_LOCAL_ANALYSIS:
             local_execution = self.local_coordinator.execute_action(
                 session=session,
@@ -170,6 +177,20 @@ class IterationOrchestrator:
             new_session = agent_execution.session
             action_status = self._agent_status(
                 agent_execution.agent_iteration_result.status
+            )
+        elif action.action_type is IterationActionType.RUN_EXTERNAL_TOOL:
+            if self.external_tool_coordinator is None:
+                raise ValueError("RUN_EXTERNAL_TOOLにはCoordinatorが必要です。")
+            external_tool_execution = self.external_tool_coordinator.execute_action(
+                session=session,
+                action_id=action.action_id,
+                challenge=context.challenge,
+                working_directory=context.working_directory,
+                updated_at=context.updated_at,
+            )
+            new_session = external_tool_execution.session
+            action_status = self._external_tool_status(
+                external_tool_execution.tool_iteration_result.status
             )
         else:
             feedback_execution = self.feedback_coordinator.apply_feedback(
@@ -211,6 +232,7 @@ class IterationOrchestrator:
             local_execution=local_execution,
             agent_execution=agent_execution,
             feedback_execution=feedback_execution,
+            external_tool_execution=external_tool_execution,
         )
 
     def _validate_action_input(
@@ -226,6 +248,12 @@ class IterationOrchestrator:
                 raise ValueError("ANALYZE_EXECUTION_OUTPUTにはexecution_resultが必要です。")
             if context.execution_source_index is None:
                 raise ValueError("ANALYZE_EXECUTION_OUTPUTにはsource_indexが必要です。")
+
+        if action.action_type is IterationActionType.RUN_EXTERNAL_TOOL:
+            if context.challenge is None:
+                raise ValueError("RUN_EXTERNAL_TOOLにはchallengeが必要です。")
+            if context.working_directory is None:
+                raise ValueError("RUN_EXTERNAL_TOOLにはworking_directoryが必要です。")
 
     def _evaluate_stop(
         self,
@@ -297,6 +325,24 @@ class IterationOrchestrator:
             ExecutionFeedbackStatus.SKIPPED: IterationOrchestrationStatus.ACTION_SKIPPED,
             ExecutionFeedbackStatus.REPEATED: IterationOrchestrationStatus.ACTION_SKIPPED,
             ExecutionFeedbackStatus.FAILED: IterationOrchestrationStatus.ACTION_FAILED,
+        }[status]
+
+    def _external_tool_status(
+        self, status: ExternalToolIterationStatus
+    ) -> IterationOrchestrationStatus:
+        return {
+            ExternalToolIterationStatus.COMPLETED: (
+                IterationOrchestrationStatus.ACTION_COMPLETED
+            ),
+            ExternalToolIterationStatus.SKIPPED: (
+                IterationOrchestrationStatus.ACTION_SKIPPED
+            ),
+            ExternalToolIterationStatus.REPEATED: (
+                IterationOrchestrationStatus.ACTION_SKIPPED
+            ),
+            ExternalToolIterationStatus.FAILED: (
+                IterationOrchestrationStatus.ACTION_FAILED
+            ),
         }[status]
 
     def _result(
