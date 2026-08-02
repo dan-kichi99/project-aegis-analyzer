@@ -1,6 +1,7 @@
 from app.challenge.challenge_input import ChallengeInput
 from app.file.elf_analysis_result import ElfAnalysisResult
 from app.file.pe_analysis_result import PeAnalysisResult
+from app.file.rev_clue_result import RevClueResult
 
 _TEXT_CONTENT_LIMIT = 10_000
 _STRINGS_CONTEXT_LIMIT = 50
@@ -53,6 +54,8 @@ class ChallengeContextBuilder:
                 self._append_pe_info(lines, file_res.pe_info)
             if file_res.elf_info is not None:
                 self._append_elf_info(lines, file_res.elf_info)
+            if file_res.rev_clues is not None and file_res.rev_clues.clues:
+                self._append_rev_clues(lines, file_res.rev_clues)
 
         return "\n".join(lines)
 
@@ -92,6 +95,18 @@ class ChallengeContextBuilder:
                 f"Characteristics=0x{section.characteristics:X} "
                 f"{permissions}"
             )
+
+    def _append_rev_clues(
+        self,
+        lines: list[str],
+        result: RevClueResult,
+    ) -> None:
+        severity_labels = {"high": "高", "medium": "中", "low": "低"}
+        lines.append("\nRev重要手掛かり：")
+        for clue in result.clues:
+            severity = severity_labels[clue.severity]
+            lines.append(f"- [{severity}] {clue.value}（{clue.category}）")
+            lines.append(f"  {clue.description}")
 
     def _append_elf_info(
         self,
