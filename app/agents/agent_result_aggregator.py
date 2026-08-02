@@ -84,6 +84,8 @@ class AgentResultAggregator:
             evidence=evidence,
             next_actions=next_actions,
             conflicts=conflicts,
+            used_fallback=used_fallback,
+            category=plan.category,
         )
 
     def _status(self, results: tuple[AgentResult, ...]) -> AgentStatus:

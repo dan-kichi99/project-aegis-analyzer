@@ -52,7 +52,12 @@ class RevAgent(BaseAgent):
         return AgentType.REV
 
     def analyze(self, agent_input: AgentInput) -> AgentResult:
-        if agent_input.category.casefold() != Category.REV.casefold():
+        matches_target = (
+            agent_input.target_agent is self.agent_type
+            if agent_input.target_agent is not None
+            else agent_input.category.casefold() == Category.REV.casefold()
+        )
+        if not matches_target:
             return AgentResult(
                 self.agent_type,
                 AgentStatus.SKIPPED,

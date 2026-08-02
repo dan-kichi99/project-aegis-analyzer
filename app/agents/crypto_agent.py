@@ -38,7 +38,12 @@ class CryptoAgent(BaseAgent):
         return AgentType.CRYPTO
 
     def analyze(self, agent_input: AgentInput) -> AgentResult:
-        if agent_input.category.casefold() != Category.CRYPTO.casefold():
+        matches_target = (
+            agent_input.target_agent is self.agent_type
+            if agent_input.target_agent is not None
+            else agent_input.category.casefold() == Category.CRYPTO.casefold()
+        )
+        if not matches_target:
             return AgentResult(
                 agent_type=self.agent_type,
                 status=AgentStatus.SKIPPED,

@@ -1,5 +1,6 @@
 from app.agents.agent import BaseAgent
 from app.agents.agent_aggregate_result import AgentAggregateResult, AgentConflict
+from app.agents.agent_coordinator import AgentCoordinator
 from app.agents.agent_input import AgentInput
 from app.agents.agent_plan import AgentCandidate, AgentExecutionPlan
 from app.agents.agent_planner import AgentPlanner
@@ -21,6 +22,7 @@ __all__ = [
     "AgentAggregateResult",
     "AgentCandidate",
     "AgentConflict",
+    "AgentCoordinator",
     "AgentEvidence",
     "AgentExecutionPlan",
     "AgentInput",

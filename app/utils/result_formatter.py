@@ -13,6 +13,7 @@ from app.execution.execution_result import ExecutionStatus, PythonExecutionResul
 from app.judge.judge_result import JudgeResult
 
 _CODE_DISPLAY_LIMIT = 5_000
+_AGENT_EVIDENCE_DISPLAY_LIMIT = 10
 _RISK_LABELS = {
     CodeRiskLevel.LOW: "低",
     CodeRiskLevel.MEDIUM: "中",
@@ -134,6 +135,70 @@ class ResultFormatter:
                 lines.append(f"- {action}")
 
             lines.append("")
+
+        if result.agent_result is not None:
+            agent_result = result.agent_result
+            primary = agent_result.primary_result
+            primary_label = (
+                primary.agent_type.value.title() if primary is not None else "なし"
+            )
+            executed = "、".join(
+                item.agent_type.value.title() for item in agent_result.results
+            ) or "なし"
+            status_labels = {
+                "completed": "完了",
+                "skipped": "スキップ",
+                "failed": "失敗",
+            }
+            confidence = (
+                f"{agent_result.confidence}%"
+                if agent_result.confidence is not None
+                else "不明"
+            )
+            lines.extend(
+                (
+                    "専門Agent解析",
+                    "=" * 16,
+                    f"主担当：{primary_label}",
+                    f"実行Agent：{executed}",
+                    f"状態：{status_labels[agent_result.status.value]}",
+                    f"解析確信度：{confidence}",
+                    f"フォールバック：{'あり' if agent_result.used_fallback else 'なし'}",
+                    "",
+                    agent_result.summary,
+                    "",
+                )
+            )
+            if agent_result.flag_candidates:
+                lines.append("Flag候補：")
+                lines.extend(f"- {flag}" for flag in agent_result.flag_candidates)
+                lines.extend(
+                    (
+                        "",
+                        "注意：",
+                        "専門Agentが提示したFlagは候補です。",
+                        "正解であることは保証されません。",
+                        "",
+                    )
+                )
+            if agent_result.evidence:
+                lines.append("Evidence：")
+                for evidence in agent_result.evidence[:_AGENT_EVIDENCE_DISPLAY_LIMIT]:
+                    lines.append(f"- {evidence.source}: {evidence.detail}")
+                lines.append("")
+            if agent_result.next_actions:
+                lines.append("専門Agentの次の手順：")
+                lines.extend(f"- {action}" for action in agent_result.next_actions)
+                lines.append("")
+            if agent_result.conflicts:
+                lines.append("競合情報：")
+                for conflict in agent_result.conflicts:
+                    values = "、".join(conflict.values)
+                    agents = "、".join(
+                        agent.value.title() for agent in conflict.agents
+                    )
+                    lines.append(f"- {conflict.field}: {values}（{agents}）")
+                lines.append("")
 
         if result.generated_code is not None and result.generated_code.items:
             lines.append("生成コード候補")

@@ -75,7 +75,12 @@ class WebAgent(BaseAgent):
         return AgentType.WEB
 
     def analyze(self, agent_input: AgentInput) -> AgentResult:
-        if agent_input.category.casefold() != Category.WEB.casefold():
+        matches_target = (
+            agent_input.target_agent is self.agent_type
+            if agent_input.target_agent is not None
+            else agent_input.category.casefold() == Category.WEB.casefold()
+        )
+        if not matches_target:
             return AgentResult(self.agent_type, AgentStatus.SKIPPED, f"カテゴリ「{agent_input.category}」はWeb対象外です。", None, None, None, (), (), None)
 
         evidence = self._evidence(agent_input)

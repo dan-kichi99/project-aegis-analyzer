@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+from app.agents.agent_aggregate_result import AgentAggregateResult
 from app.codegen.generated_code_result import GeneratedCodeResult
 
 
@@ -16,3 +17,4 @@ class JudgeResult:
     next_actions: list[str] | None = None
     gemini_prompt: str | None = None
     generated_code: GeneratedCodeResult | None = None
+    agent_result: AgentAggregateResult | None = None

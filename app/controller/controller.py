@@ -1,5 +1,9 @@
 from datetime import datetime, timezone
 
+from app.agents.agent_aggregate_result import AgentAggregateResult
+from app.agents.agent_coordinator import AgentCoordinator
+from app.agents.agent_input import AgentInput
+from app.agents.agent_result import AgentStatus
 from app.analyzer.analyzer import Analyzer
 from app.challenge.challenge_context_builder import ChallengeContextBuilder
 from app.challenge.challenge_input import ChallengeInput
@@ -24,6 +28,7 @@ class Controller:
         judge: Judge,
         context_builder: ChallengeContextBuilder | None = None,
         event_publisher: EventPublisher | None = None,
+        agent_coordinator: AgentCoordinator | None = None,
     ) -> None:
         self.analyzer = analyzer
         self.knowledge_retriever = knowledge_retriever
@@ -32,6 +37,7 @@ class Controller:
         self.judge = judge
         self.context_builder = context_builder or ChallengeContextBuilder()
         self._event_publisher = event_publisher
+        self._agent_coordinator = agent_coordinator
 
     def process(self, question: str) -> JudgeResult:
         """問題文のみを受け取って解析する後方互換メソッド。"""
@@ -47,11 +53,24 @@ class Controller:
     ) -> JudgeResult:
         """問題文と添付ファイル解析結果をまとめて解析する。"""
         context = self.context_builder.build(challenge)
+        category = self.analyzer.analyze(challenge.question)
+        knowledge = self.knowledge_retriever.retrieve(category, challenge.question)
+        if self._agent_coordinator is not None:
+            agent_input = AgentInput(
+                challenge=challenge,
+                category=category,
+                context=context,
+                local_knowledge=tuple(knowledge),
+                metadata={"file_count": len(challenge.files)},
+            )
+            aggregate = self._agent_coordinator.analyze(agent_input)
+            if self._can_use_agent_result(aggregate):
+                return self._agent_judge_result(category, aggregate)
 
-        return self._run_pipeline(
-            analysis_target_text=challenge.question,
-            retrieval_target_text=challenge.question,
+        return self._run_ai_pipeline(
+            category=category,
             prompt_input_text=context,
+            knowledge=knowledge,
         )
 
     def _run_pipeline(
@@ -73,14 +92,22 @@ class Controller:
             retrieval_target_text,
         )
 
-        # 3. AI用Prompt生成
+        return self._run_ai_pipeline(category, prompt_input_text, knowledge)
+
+    def _run_ai_pipeline(
+        self,
+        category: str,
+        prompt_input_text: str,
+        knowledge: list[str],
+    ) -> JudgeResult:
+        # AI用Prompt生成
         prompt = self.prompt_manager.build(
             question=prompt_input_text,
             category=category,
             knowledge=knowledge,
         )
 
-        # 4. AI生成
+        # AI生成
         self._publish(
             AnalysisEventType.AI_ANALYSIS_STARTED,
             "AI解析を開始します。",
@@ -97,10 +124,39 @@ class Controller:
             {"category": category},
         )
 
-        # 5. Judge
+        # Judge
         return self.judge.evaluate(
             category,
             ai_response,
+        )
+
+    def _can_use_agent_result(self, aggregate: AgentAggregateResult) -> bool:
+        if aggregate.status is AgentStatus.COMPLETED:
+            return True
+        if aggregate.status is AgentStatus.SKIPPED:
+            return False
+        return any(
+            result.answer is not None or result.flag_candidate is not None
+            for result in aggregate.results
+        )
+
+    def _agent_judge_result(
+        self,
+        category: str,
+        aggregate: AgentAggregateResult,
+    ) -> JudgeResult:
+        primary = aggregate.primary_result
+        answer = primary.answer if primary is not None else None
+        return JudgeResult(
+            category=category,
+            answer=answer or aggregate.summary,
+            flag=None,
+            confidence=aggregate.confidence,
+            reason="専門Agentによる解析結果です。Flag候補は未確定です。",
+            hypothesis=aggregate.summary,
+            next_actions=list(aggregate.next_actions),
+            gemini_prompt=None,
+            agent_result=aggregate,
         )
 
     def _publish(

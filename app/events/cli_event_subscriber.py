@@ -8,6 +8,13 @@ class CliEventSubscriber:
 
     _MESSAGES: ClassVar[dict[AnalysisEventType, str]] = {
         AnalysisEventType.LOCAL_SOLUTION_FOUND: "ローカル解析でFlag候補を検出しました。",
+        AnalysisEventType.AGENT_PLAN_CREATED: "専門Agentを選択しました。",
+        AnalysisEventType.AGENT_STARTED: "専門Agent解析を開始します。",
+        AnalysisEventType.AGENT_COMPLETED: "専門Agent解析が完了しました。",
+        AnalysisEventType.AGENT_FAILED: "専門Agent解析に失敗しました。",
+        AnalysisEventType.AGENT_AGGREGATION_COMPLETED: (
+            "専門Agent結果の統合が完了しました。"
+        ),
         AnalysisEventType.AI_ANALYSIS_STARTED: (
             "ローカル解析では解決できなかったため、AI解析を開始します。"
         ),

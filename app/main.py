@@ -2,7 +2,16 @@ import sys
 from dataclasses import replace
 from datetime import datetime, timezone
 
+from app.agents.agent_coordinator import AgentCoordinator
+from app.agents.agent_planner import AgentPlanner
+from app.agents.agent_result_aggregator import AgentResultAggregator
+from app.agents.agent_router import AgentRouter
+from app.agents.crypto_agent import CryptoAgent
+from app.agents.forensics_agent import ForensicsAgent
+from app.agents.rev_agent import RevAgent
+from app.agents.web_agent import WebAgent
 from app.analyzer.analyzer import Analyzer
+from app.challenge.challenge_context_builder import ChallengeContextBuilder
 from app.challenge.challenge_service import ChallengeService
 from app.client.openai_client import OpenAIClient
 from app.codegen.cli_code_approval import CliCodeApproval
@@ -55,9 +64,24 @@ def main() -> None:
     analyzer = Analyzer()
     knowledge_retriever = KnowledgeRetriever()
     prompt_manager = PromptManager()
+    context_builder = ChallengeContextBuilder()
+    flag_extractor = FlagExtractor()
+
+    agents = (
+        CryptoAgent(ai_client, flag_extractor, prompt_manager),
+        RevAgent(ai_client, flag_extractor, prompt_manager),
+        WebAgent(ai_client, flag_extractor, prompt_manager),
+        ForensicsAgent(ai_client, flag_extractor, prompt_manager),
+    )
+    agent_coordinator = AgentCoordinator(
+        planner=AgentPlanner(),
+        router=AgentRouter(agents),
+        aggregator=AgentResultAggregator(),
+        event_publisher=publisher,
+    )
 
     judge = Judge(
-        flag_extractor=FlagExtractor(),
+        flag_extractor=flag_extractor,
         confidence_estimator=ConfidenceEstimator(),
         reason_extractor=ReasonExtractor(),
         next_action_extractor=NextActionExtractor(),
@@ -72,6 +96,8 @@ def main() -> None:
         ai_client=ai_client,
         judge=judge,
         event_publisher=publisher,
+        context_builder=context_builder,
+        agent_coordinator=agent_coordinator,
     )
 
     service = ChallengeService(

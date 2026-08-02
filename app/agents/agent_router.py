@@ -47,9 +47,22 @@ class AgentRouter:
     def agents(self) -> tuple[BaseAgent, ...]:
         return self._agents
 
+    def has_agent(self, agent_type: AgentType) -> bool:
+        return agent_type in self._registered
+
     def route(self, agent_input: AgentInput) -> AgentRouteResult:
         category = agent_input.category
         expected_type = category_to_agent_type(category)
+        return self.route_agent(expected_type, agent_input)
+
+    def route_agent(
+        self,
+        agent_type: AgentType,
+        agent_input: AgentInput,
+    ) -> AgentRouteResult:
+        """指定されたAgentTypeを1件だけ実行する。"""
+        category = agent_input.category
+        expected_type = agent_type
         agent = self._registered.get(expected_type)
         if agent is None:
             return AgentRouteResult(

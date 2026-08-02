@@ -22,3 +22,5 @@ class AgentAggregateResult:
     evidence: tuple[AgentEvidence, ...]
     next_actions: tuple[str, ...]
     conflicts: tuple[AgentConflict, ...]
+    used_fallback: bool = False
+    category: str | None = None
