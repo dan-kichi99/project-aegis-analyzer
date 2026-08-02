@@ -22,6 +22,7 @@ from app.presentation.input_models import (
     InputValidationStatus,
 )
 from app.presentation.input_presenter import AnalysisInputPresenter
+from app.presentation.tool_budget_presenter import ToolBudgetPresenter
 from app.presentation.view_models import (
     ActionViewModel,
     AgentViewModel,
@@ -63,4 +64,5 @@ __all__ = [
     "IterationViewModel",
     "ProgressViewModel",
     "ResultViewModel",
+    "ToolBudgetPresenter",
 ]
