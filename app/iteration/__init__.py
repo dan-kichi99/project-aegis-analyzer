@@ -3,6 +3,7 @@ from app.iteration.iteration_action import (
     IterationActionStatus,
     IterationActionType,
 )
+from app.iteration.iteration_action_planner import IterationActionPlanner
 from app.iteration.iteration_state import (
     AnalysisHypothesis,
     HypothesisStatus,
@@ -20,6 +21,7 @@ __all__ = [
     "AnalysisHypothesis",
     "HypothesisStatus",
     "IterationAction",
+    "IterationActionPlanner",
     "IterationActionStatus",
     "IterationActionType",
     "IterationSession",
