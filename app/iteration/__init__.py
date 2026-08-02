@@ -37,6 +37,12 @@ from app.iteration.iteration_coordinator import (
     IterationCoordinator,
     IterationExecutionResult,
 )
+from app.iteration.iteration_orchestration_result import (
+    IterationOrchestrationResult,
+    IterationOrchestrationStatus,
+    IterationRunContext,
+)
+from app.iteration.iteration_orchestrator import IterationOrchestrator
 from app.iteration.iteration_state import (
     AnalysisHypothesis,
     HypothesisStatus,
@@ -95,6 +101,10 @@ __all__ = [
     "IterationCoordinator",
     "IterationDecision",
     "IterationExecutionResult",
+    "IterationOrchestrationResult",
+    "IterationOrchestrationStatus",
+    "IterationOrchestrator",
+    "IterationRunContext",
     "IterationSession",
     "IterationSessionStatus",
     "IterationStateManager",

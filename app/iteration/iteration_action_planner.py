@@ -1,3 +1,5 @@
+from dataclasses import replace
+
 from app.agents.agent_aggregate_result import AgentAggregateResult
 from app.codegen.code_safety_result import CodeRiskLevel
 from app.codegen.generated_code_result import GeneratedCodeLanguage, GeneratedCodeStatus
@@ -45,7 +47,7 @@ class IterationActionPlanner:
         for action in candidates.values():
             previous = existing.get(action.action_id)
             if previous is not None:
-                if previous != action:
+                if not self._same_definition(previous, action):
                     raise ValueError(
                         f"既存action_id「{action.action_id}」の内容が異なります。"
                     )
@@ -53,6 +55,13 @@ class IterationActionPlanner:
             planned.append(action)
         planned.sort(key=lambda action: (-action.priority, action.action_id))
         return tuple(planned[:MAX_PLANNED_ACTIONS])
+
+    def _same_definition(
+        self,
+        existing: IterationAction,
+        proposed: IterationAction,
+    ) -> bool:
+        return replace(existing, status=IterationActionStatus.PROPOSED) == proposed
 
     def _flag_actions(
         self,

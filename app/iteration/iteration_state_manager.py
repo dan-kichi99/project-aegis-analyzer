@@ -118,6 +118,22 @@ class IterationStateManager:
         )
         return replace(session, pending_actions=actions, updated_at=updated_at)
 
+    def add_pending_actions(
+        self,
+        session: IterationSession,
+        actions: tuple[IterationAction, ...],
+        updated_at: datetime,
+    ) -> IterationSession:
+        self._require_active(session)
+        self._require_time(session, updated_at)
+        if any(
+            action.status is not IterationActionStatus.PROPOSED for action in actions
+        ):
+            raise ValueError("追加できるのはPROPOSED Actionだけです。")
+        merged = self._merge_actions(session.pending_actions, actions)
+        self._require_limit(merged, MAX_PENDING_ACTIONS, "pending_actions")
+        return replace(session, pending_actions=merged, updated_at=updated_at)
+
     def stop_session(
         self,
         session: IterationSession,
