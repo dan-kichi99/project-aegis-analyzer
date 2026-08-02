@@ -2,7 +2,10 @@ import inspect
 
 import pytest
 
-from app.execution.execution_analysis_result import ExecutionOutputSource
+from app.execution.execution_analysis_result import (
+    ExecutionAnalysisResult,
+    ExecutionOutputSource,
+)
 from app.execution.execution_result import ExecutionStatus, PythonExecutionResult
 from app.execution.execution_result_analyzer import ExecutionResultAnalyzer
 from app.judge.flag_extractor import FlagExtractor
@@ -173,6 +176,31 @@ def test_analysis_keeps_original_execution_dto_and_truncation_state():
     assert result.execution.stdout == "original FLAG{kept}"
     assert result.execution.stderr == "original error"
     assert result.execution.output_truncated is True
+
+
+def test_execution_analysis_source_index_contract_and_legacy_constructor():
+    execution = _execution()
+    legacy = ExecutionResultAnalyzer(FlagExtractor()).analyze(execution)
+    explicit_zero = ExecutionResultAnalyzer(FlagExtractor()).analyze(execution, 0)
+    explicit_positive = ExecutionResultAnalyzer(FlagExtractor()).analyze(execution, 7)
+    assert legacy.source_index is None
+    assert explicit_zero.source_index == 0
+    assert explicit_positive.source_index == 7
+    assert ExecutionAnalysisResult(execution, (), None, True).source_index is None
+    with pytest.raises(ValueError):
+        ExecutionAnalysisResult(execution, (), None, True, -1)
+    with pytest.raises(TypeError):
+        ExecutionAnalysisResult(execution, (), None, True, True)
+
+
+def test_source_index_does_not_change_output_flag_or_success_analysis():
+    execution = _execution(stdout="FLAG{indexed}", stderr="original error")
+    result = ExecutionResultAnalyzer(FlagExtractor()).analyze(execution, 4)
+    assert result.source_index == 4
+    assert result.execution.stdout == "FLAG{indexed}"
+    assert result.execution.stderr == "original error"
+    assert result.primary_flag == "FLAG{indexed}"
+    assert result.successful_execution
 
 
 def test_flag_extractor_extract_keeps_first_match_behavior():

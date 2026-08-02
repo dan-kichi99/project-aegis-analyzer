@@ -1,5 +1,6 @@
 import importlib
 import inspect
+from dataclasses import replace
 
 import pytest
 
@@ -212,6 +213,16 @@ def test_execution_output_flags_and_warnings_are_read_only(monkeypatch):
     warning = view.execution_warning_label.values["text"]
     assert "候補" in warning and "途中出力" in warning and "省略" in warning
     assert "正解Flag" not in warning
+
+
+def test_single_result_for_candidate_b_uses_explicit_source_index(monkeypatch):
+    _module, view = _view(monkeypatch)
+    first = replace(_code(), source_index=0)
+    second = replace(_code(), source_index=1)
+    view.render_candidates(GeneratedCodeResult((first, second)))
+    view.render_execution_results((replace(_analysis(), source_index=1),))
+    assert view.execution_result_list.items == ["[1] timed_out"]
+    assert "[0]" not in view.execution_result_list.items[0]
 
 
 def test_view_has_no_execution_or_approval_service_dependencies():

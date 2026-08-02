@@ -13,7 +13,11 @@ class ExecutionResultAnalyzer:
     def __init__(self, flag_extractor: FlagExtractor) -> None:
         self._flag_extractor = flag_extractor
 
-    def analyze(self, execution: PythonExecutionResult) -> ExecutionAnalysisResult:
+    def analyze(
+        self,
+        execution: PythonExecutionResult,
+        source_index: int | None = None,
+    ) -> ExecutionAnalysisResult:
         candidates: list[ExecutionFlagCandidate] = []
         seen: set[str] = set()
         if execution.started:
@@ -40,6 +44,7 @@ class ExecutionResultAnalyzer:
             flag_candidates=tuple(candidates),
             primary_flag=primary,
             successful_execution=successful,
+            source_index=source_index,
         )
 
     def _collect(

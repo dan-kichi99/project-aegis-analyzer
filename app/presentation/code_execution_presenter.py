@@ -26,6 +26,9 @@ class CodeExecutionPresenter:
         self, generated_code: GeneratedCodeResult | None
     ) -> CodeExecutionState:
         items = generated_code.items if generated_code is not None else ()
+        source_indexes = tuple(item.source_index for item in items)
+        if len(source_indexes) != len(set(source_indexes)):
+            raise ValueError("生成コード候補のsource_indexが重複しています。")
         candidates = tuple(self._candidate(item) for item in items)
         return CodeExecutionState(
             candidates,
@@ -92,13 +95,24 @@ class CodeExecutionPresenter:
         results = tuple(
             self._execution_result(
                 analysis,
-                state.candidates[index].source_index
-                if index < len(state.candidates)
-                else index,
+                self._result_source_index(state, analysis, index),
+                frozenset(item.source_index for item in state.candidates),
             )
             for index, analysis in enumerate(analyses)
         )
         return replace(state, execution_results=results)
+
+    @staticmethod
+    def _result_source_index(
+        state: CodeExecutionState,
+        analysis: ExecutionAnalysisResult,
+        input_index: int,
+    ) -> int:
+        if analysis.source_index is not None:
+            return analysis.source_index
+        if input_index < len(state.candidates):
+            return state.candidates[input_index].source_index
+        return input_index
 
     def _candidate(self, code: GeneratedCode) -> CodeCandidateViewModel:
         safety = code.safety
@@ -165,7 +179,9 @@ class CodeExecutionPresenter:
 
     @staticmethod
     def _execution_result(
-        analysis: ExecutionAnalysisResult, source_index: int
+        analysis: ExecutionAnalysisResult,
+        source_index: int,
+        known_source_indexes: frozenset[int],
     ) -> ExecutionResultViewModel:
         execution = analysis.execution
         warnings = ["表示されたFlagは候補であり、正解とは限りません。"]
@@ -173,6 +189,8 @@ class CodeExecutionPresenter:
             warnings.append("異常終了またはタイムアウト中の途中出力である可能性があります。")
         if execution.output_truncated:
             warnings.append("出力は上限により省略されています。")
+        if analysis.source_index is not None and source_index not in known_source_indexes:
+            warnings.append("対応する生成コード候補が見つかりません。")
         return ExecutionResultViewModel(
             source_index,
             execution.status.value,

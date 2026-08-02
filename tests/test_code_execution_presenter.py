@@ -1,4 +1,4 @@
-from dataclasses import FrozenInstanceError
+from dataclasses import FrozenInstanceError, replace
 
 import pytest
 
@@ -126,6 +126,13 @@ def test_candidate_limits_selection_clear_and_state_immutability():
             presenter.select_candidate(state, index)
 
 
+def test_duplicate_candidate_source_indexes_are_rejected():
+    with pytest.raises(ValueError, match="source_index"):
+        CodeExecutionPresenter().present_candidates(
+            GeneratedCodeResult((_code(source_index=1), _code(source_index=1)))
+        )
+
+
 @pytest.mark.parametrize(
     ("risk", "approve", "execute"),
     [
@@ -147,10 +154,14 @@ def test_review_required_risk_permissions(risk, approve, execute):
 def test_unknown_rejected_and_approved_execution_permissions():
     presenter = CodeExecutionPresenter()
     values = (
-        _code(language=GeneratedCodeLanguage.UNKNOWN),
-        _code(status=GeneratedCodeStatus.REJECTED),
-        _code(status=GeneratedCodeStatus.APPROVED),
-        _code(CodeRiskLevel.MEDIUM, status=GeneratedCodeStatus.APPROVED),
+        _code(language=GeneratedCodeLanguage.UNKNOWN, source_index=0),
+        _code(status=GeneratedCodeStatus.REJECTED, source_index=1),
+        _code(status=GeneratedCodeStatus.APPROVED, source_index=2),
+        _code(
+            CodeRiskLevel.MEDIUM,
+            status=GeneratedCodeStatus.APPROVED,
+            source_index=3,
+        ),
     )
     candidates = presenter.present_candidates(GeneratedCodeResult(values)).candidates
     assert not candidates[0].can_approve
@@ -197,6 +208,31 @@ def test_execution_result_preserves_output_flags_and_fixed_warnings():
     assert not item.successful_execution
     assert "候補" in item.warning and "途中出力" in item.warning and "省略" in item.warning
     assert state.execution_results == ()
+
+
+def test_explicit_source_index_maps_candidate_b_without_falling_back_to_a():
+    presenter = CodeExecutionPresenter()
+    state = presenter.present_candidates(
+        GeneratedCodeResult((_code(source_index=0), _code(source_index=1)))
+    )
+    only_b = replace(_analysis(), source_index=1)
+    updated = presenter.present_execution_results(state, (only_b,))
+    assert updated.execution_results[0].source_index == 1
+    assert updated.execution_results[0].source_index != 0
+
+
+def test_none_source_index_keeps_input_order_and_unknown_explicit_never_falls_back():
+    presenter = CodeExecutionPresenter()
+    state = presenter.present_candidates(
+        GeneratedCodeResult((_code(source_index=10), _code(source_index=20)))
+    )
+    legacy = presenter.present_execution_results(state, (_analysis(), _analysis()))
+    assert [item.source_index for item in legacy.execution_results] == [10, 20]
+    unknown = presenter.present_execution_results(
+        state, (replace(_analysis(), source_index=99),)
+    )
+    assert unknown.execution_results[0].source_index == 99
+    assert "見つかりません" in unknown.execution_results[0].warning
 
 
 def test_presentation_dtos_are_frozen_and_slotted():
