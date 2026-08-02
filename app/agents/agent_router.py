@@ -21,6 +21,14 @@ _STATUS_TO_ROUTE_STATUS = {
 }
 
 
+def category_to_agent_type(category: str) -> AgentType:
+    """Analyzerのカテゴリ文字列を専門Agent種別へ変換する。"""
+    return _CATEGORY_TO_AGENT_TYPE.get(
+        category.strip().casefold(),
+        AgentType.GENERAL,
+    )
+
+
 class AgentRouter:
     """カテゴリに対応する登録済み専門Agentを1件だけ実行する。"""
 
@@ -41,10 +49,7 @@ class AgentRouter:
 
     def route(self, agent_input: AgentInput) -> AgentRouteResult:
         category = agent_input.category
-        expected_type = _CATEGORY_TO_AGENT_TYPE.get(
-            category.strip().casefold(),
-            AgentType.GENERAL,
-        )
+        expected_type = category_to_agent_type(category)
         agent = self._registered.get(expected_type)
         if agent is None:
             return AgentRouteResult(
