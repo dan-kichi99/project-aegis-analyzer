@@ -1,4 +1,5 @@
 from app.challenge.challenge_input import ChallengeInput
+from app.file.appended_data_result import AppendedDataResult
 from app.file.elf_analysis_result import ElfAnalysisResult
 from app.file.pe_analysis_result import PeAnalysisResult
 from app.file.rev_clue_result import RevClueResult
@@ -68,6 +69,8 @@ class ChallengeContextBuilder:
                 and file_res.caesar_result.candidates
             ):
                 self._append_caesar_candidates(lines, file_res.caesar_result)
+            if file_res.appended_data is not None:
+                self._append_appended_data(lines, file_res.appended_data)
 
         if challenge.rsa_result is not None:
             self._append_rsa_result(lines, challenge.rsa_result)
@@ -180,6 +183,27 @@ class ChallengeContextBuilder:
                 plaintext = plaintext[:300] + "[省略]"
             lines.append(f"- 復号結果：{plaintext!r}")
         lines.append(f"- Flag：{'検出' if result.contains_flag else '未検出'}")
+
+    def _append_appended_data(
+        self,
+        lines: list[str],
+        result: AppendedDataResult,
+    ) -> None:
+        if result.container_type == "pe":
+            heading = "末尾追加データ（PE Overlay候補）："
+        elif result.container_type == "elf":
+            heading = "末尾追加データ（ELF候補）："
+        else:
+            heading = "末尾追加データ："
+        lines.append(f"\n{heading}")
+        lines.append(f"- 元形式：{result.container_type.upper()}")
+        lines.append(f"- 終端offset：0x{result.end_offset:X}")
+        lines.append(f"- 追加offset：0x{result.appended_offset:X}")
+        lines.append(f"- サイズ：{result.appended_size} bytes")
+        lines.append(f"- 推定形式：{result.detected_type.upper()}")
+        lines.append(f"- シグネチャ：{result.signature}")
+        if result.preview is not None:
+            lines.append(f"- プレビュー：{result.preview!r}")
 
     def _append_elf_info(
         self,

@@ -1,3 +1,4 @@
+from app.file.appended_data_analyzer import AppendedDataAnalyzer
 from app.file.common_encoding_decoder import decode_common_encoding
 from app.file.elf_analyzer import ElfAnalyzer
 from app.file.file_analysis_result import FileAnalysisResult
@@ -27,6 +28,7 @@ class StaticFileAnalyzer:
         self._rev_clue_analyzer = RevClueAnalyzer()
         self._xor_analyzer = SingleByteXorAnalyzer()
         self._caesar_analyzer = CaesarAnalyzer()
+        self._appended_data_analyzer = AppendedDataAnalyzer(self.type_detector)
 
     def analyze(self, file_input: FileInput) -> FileAnalysisResult:
         detected_type = self.type_detector.detect(file_input)
@@ -78,6 +80,12 @@ class StaticFileAnalyzer:
             text_content=text_content,
             strings=extracted_strings,
         )
+        appended_data = self._appended_data_analyzer.analyze(
+            file_input=file_input,
+            detected_type=detected_type,
+            pe_info=pe_info,
+            elf_info=elf_info,
+        )
 
         return FileAnalysisResult(
             name=file_input.name,
@@ -91,6 +99,7 @@ class StaticFileAnalyzer:
             rev_clues=rev_clues,
             xor_result=xor_result,
             caesar_result=caesar_result,
+            appended_data=appended_data,
         )
 
     def _extract_printable_strings(self, content: bytes) -> list[str]:

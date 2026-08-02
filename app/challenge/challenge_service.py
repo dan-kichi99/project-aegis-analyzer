@@ -75,6 +75,25 @@ class ChallengeService:
         challenge: ChallengeInput,
     ) -> tuple[str, str] | None:
         for file_result in challenge.files:
+            if (
+                file_result.appended_data is not None
+                and file_result.appended_data.content is not None
+            ):
+                appended_text = file_result.appended_data.content.decode(
+                    "latin-1"
+                )
+                flag = self.flag_extractor.extract(appended_text)
+                if flag is not None:
+                    return (
+                        flag,
+                        (
+                            f"ファイル「{file_result.name}」の"
+                            "末尾追加データから検出しました。"
+                            f"offset：0x{file_result.appended_data.appended_offset:X} "
+                            f"推定形式：{file_result.appended_data.detected_type}"
+                        ),
+                    )
+
             if file_result.text_content is not None:
                 flag = self.flag_extractor.extract(
                     file_result.text_content
