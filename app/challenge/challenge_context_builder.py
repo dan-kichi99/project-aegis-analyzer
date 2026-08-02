@@ -1,4 +1,5 @@
 from app.challenge.challenge_input import ChallengeInput
+from app.file.elf_analysis_result import ElfAnalysisResult
 from app.file.pe_analysis_result import PeAnalysisResult
 
 _TEXT_CONTENT_LIMIT = 10_000
@@ -50,6 +51,8 @@ class ChallengeContextBuilder:
 
             if file_res.pe_info is not None:
                 self._append_pe_info(lines, file_res.pe_info)
+            if file_res.elf_info is not None:
+                self._append_elf_info(lines, file_res.elf_info)
 
         return "\n".join(lines)
 
@@ -87,5 +90,61 @@ class ChallengeContextBuilder:
                 f"RawSize=0x{section.raw_size:X} "
                 f"RawOffset=0x{section.raw_offset:X} "
                 f"Characteristics=0x{section.characteristics:X} "
+                f"{permissions}"
+            )
+
+    def _append_elf_info(
+        self,
+        lines: list[str],
+        elf_info: ElfAnalysisResult,
+    ) -> None:
+        lines.append("\nELF解析：")
+        lines.append(f"- 形式：{elf_info.elf_class}")
+        lines.append(f"- エンディアン：{elf_info.endianness}")
+        lines.append(f"- アーキテクチャ：{elf_info.architecture}")
+        lines.append(f"- 種別：{elf_info.file_type}")
+        lines.append(f"- EntryPoint：0x{elf_info.entry_point:X}")
+        lines.append(f"- Program Header数：{elf_info.program_header_count}")
+        lines.append(f"- Section Header数：{elf_info.section_header_count}")
+        if elf_info.interpreter is not None:
+            lines.append(f"- Interpreter：{elf_info.interpreter}")
+
+        lines.append("\nセグメント：")
+        for segment in elf_info.segments:
+            permissions = "".join(
+                permission
+                for enabled, permission in (
+                    (segment.readable, "R"),
+                    (segment.writable, "W"),
+                    (segment.executable, "X"),
+                )
+                if enabled
+            ) or "-"
+            lines.append(
+                f"- {segment.segment_type} "
+                f"Offset=0x{segment.file_offset:X} "
+                f"VA=0x{segment.virtual_address:X} "
+                f"FileSize=0x{segment.file_size:X} "
+                f"MemSize=0x{segment.memory_size:X} "
+                f"{permissions}"
+            )
+
+        lines.append("\nセクション：")
+        for section in elf_info.sections:
+            permissions = "".join(
+                permission
+                for enabled, permission in (
+                    (section.allocatable, "A"),
+                    (section.writable, "W"),
+                    (section.executable, "X"),
+                )
+                if enabled
+            ) or "-"
+            lines.append(
+                f"- {section.name or '(名前なし)'} "
+                f"Type={section.section_type} "
+                f"Address=0x{section.virtual_address:X} "
+                f"Offset=0x{section.file_offset:X} "
+                f"Size=0x{section.size:X} "
                 f"{permissions}"
             )

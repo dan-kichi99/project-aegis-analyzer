@@ -1,4 +1,5 @@
 from app.file.common_encoding_decoder import decode_common_encoding
+from app.file.elf_analyzer import ElfAnalyzer
 from app.file.file_analysis_result import FileAnalysisResult
 from app.file.file_input import FileInput
 from app.file.file_type_detector import FileTypeDetector
@@ -19,6 +20,7 @@ class StaticFileAnalyzer:
     ) -> None:
         self.type_detector = type_detector or FileTypeDetector()
         self._pe_analyzer = PeAnalyzer()
+        self._elf_analyzer = ElfAnalyzer()
 
     def analyze(self, file_input: FileInput) -> FileAnalysisResult:
         detected_type = self.type_detector.detect(file_input)
@@ -49,6 +51,11 @@ class StaticFileAnalyzer:
             if detected_type == "pe"
             else None
         )
+        elf_info = (
+            self._elf_analyzer.analyze(file_input)
+            if detected_type == "elf"
+            else None
+        )
 
         return FileAnalysisResult(
             name=file_input.name,
@@ -58,6 +65,7 @@ class StaticFileAnalyzer:
             text_content=text_content,
             strings=extracted_strings,
             pe_info=pe_info,
+            elf_info=elf_info,
         )
 
     def _extract_printable_strings(self, content: bytes) -> list[str]:
