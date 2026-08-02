@@ -1,3 +1,9 @@
+from app.presentation.action_approval_models import (
+    ActionApprovalDecision,
+    ActionApprovalRequest,
+    ActionApprovalState,
+)
+from app.presentation.action_approval_presenter import ActionApprovalPresenter
 from app.presentation.application_presenter import ApplicationPresenter
 from app.presentation.event_buffer import AnalysisEventBuffer, GuiEventSubscriber
 from app.presentation.input_models import (
@@ -20,6 +26,10 @@ from app.presentation.view_models import (
 )
 
 __all__ = [
+    "ActionApprovalDecision",
+    "ActionApprovalPresenter",
+    "ActionApprovalRequest",
+    "ActionApprovalState",
     "ActionViewModel",
     "AgentViewModel",
     "AnalysisEventBuffer",
