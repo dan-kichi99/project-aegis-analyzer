@@ -2,6 +2,7 @@ from app.challenge.challenge_input import ChallengeInput
 from app.file.elf_analysis_result import ElfAnalysisResult
 from app.file.pe_analysis_result import PeAnalysisResult
 from app.file.rev_clue_result import RevClueResult
+from app.solver.caesar_result import CaesarResult
 from app.solver.xor_result import SingleByteXorResult
 
 _TEXT_CONTENT_LIMIT = 10_000
@@ -59,6 +60,11 @@ class ChallengeContextBuilder:
                 self._append_rev_clues(lines, file_res.rev_clues)
             if file_res.xor_result is not None and file_res.xor_result.candidates:
                 self._append_xor_candidates(lines, file_res.xor_result)
+            if (
+                file_res.caesar_result is not None
+                and file_res.caesar_result.candidates
+            ):
+                self._append_caesar_candidates(lines, file_res.caesar_result)
 
         return "\n".join(lines)
 
@@ -123,6 +129,22 @@ class ChallengeContextBuilder:
                 plaintext = plaintext[:300] + "[省略]"
             lines.append(
                 f"- key=0x{candidate.key:02X} score={candidate.score:.4f} "
+                f"検出元：{candidate.source}"
+            )
+            lines.append(f"  {plaintext!r}")
+
+    def _append_caesar_candidates(
+        self,
+        lines: list[str],
+        result: CaesarResult,
+    ) -> None:
+        lines.append("\nCaesar / ROT候補：")
+        for candidate in result.candidates:
+            plaintext = candidate.plaintext
+            if len(plaintext) > 300:
+                plaintext = plaintext[:300] + "[省略]"
+            lines.append(
+                f"- shift={candidate.shift} score={candidate.score:.4f} "
                 f"検出元：{candidate.source}"
             )
             lines.append(f"  {plaintext!r}")

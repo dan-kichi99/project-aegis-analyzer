@@ -110,4 +110,19 @@ class ChallengeService:
                             ),
                         )
 
+            if file_result.caesar_result is not None:
+                for candidate in file_result.caesar_result.candidates:
+                    flag = self.flag_extractor.extract(candidate.plaintext)
+                    if flag is not None:
+                        rot13 = "（ROT13）" if candidate.shift == 13 else ""
+                        return (
+                            flag,
+                            (
+                                f"ファイル「{file_result.name}」の"
+                                "Caesar解析から検出しました。"
+                                f"シフト：{candidate.shift}{rot13} "
+                                f"検出元：{candidate.source}"
+                            ),
+                        )
+
         return None

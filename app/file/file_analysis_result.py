@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from app.file.elf_analysis_result import ElfAnalysisResult
 from app.file.pe_analysis_result import PeAnalysisResult
 from app.file.rev_clue_result import RevClueResult
+from app.solver.caesar_result import CaesarResult
 from app.solver.xor_result import SingleByteXorResult
 
 
@@ -20,3 +21,4 @@ class FileAnalysisResult:
     elf_info: ElfAnalysisResult | None = None
     rev_clues: RevClueResult | None = None
     xor_result: SingleByteXorResult | None = None
+    caesar_result: CaesarResult | None = None

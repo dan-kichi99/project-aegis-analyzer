@@ -6,6 +6,7 @@ from app.file.file_type_detector import FileTypeDetector
 from app.file.image_metadata_extractor import extract_image_metadata
 from app.file.pe_analyzer import PeAnalyzer
 from app.file.rev_clue_analyzer import RevClueAnalyzer
+from app.solver.caesar_analyzer import CaesarAnalyzer
 from app.solver.single_byte_xor_analyzer import SingleByteXorAnalyzer
 
 _ANALYSIS_BYTE_LIMIT = 2_000_000
@@ -25,6 +26,7 @@ class StaticFileAnalyzer:
         self._elf_analyzer = ElfAnalyzer()
         self._rev_clue_analyzer = RevClueAnalyzer()
         self._xor_analyzer = SingleByteXorAnalyzer()
+        self._caesar_analyzer = CaesarAnalyzer()
 
     def analyze(self, file_input: FileInput) -> FileAnalysisResult:
         detected_type = self.type_detector.detect(file_input)
@@ -72,6 +74,10 @@ class StaticFileAnalyzer:
             text_content=text_content,
             strings=extracted_strings,
         )
+        caesar_result = self._caesar_analyzer.analyze(
+            text_content=text_content,
+            strings=extracted_strings,
+        )
 
         return FileAnalysisResult(
             name=file_input.name,
@@ -84,6 +90,7 @@ class StaticFileAnalyzer:
             elf_info=elf_info,
             rev_clues=rev_clues,
             xor_result=xor_result,
+            caesar_result=caesar_result,
         )
 
     def _extract_printable_strings(self, content: bytes) -> list[str]:
