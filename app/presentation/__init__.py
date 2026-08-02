@@ -1,4 +1,5 @@
 from app.presentation.application_presenter import ApplicationPresenter
+from app.presentation.event_buffer import AnalysisEventBuffer, GuiEventSubscriber
 from app.presentation.input_models import (
     AnalysisInputState,
     AnalysisRequest,
@@ -21,6 +22,7 @@ from app.presentation.view_models import (
 __all__ = [
     "ActionViewModel",
     "AgentViewModel",
+    "AnalysisEventBuffer",
     "AnalysisInputPresenter",
     "AnalysisInputState",
     "AnalysisRequest",
@@ -29,6 +31,7 @@ __all__ = [
     "ApplicationStatus",
     "BudgetViewModel",
     "ExternalToolViewModel",
+    "GuiEventSubscriber",
     "InputValidationResult",
     "InputValidationStatus",
     "IterationViewModel",
