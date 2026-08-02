@@ -6,6 +6,7 @@ from app.agents.agent_result import (
     AgentStatus,
     AgentType,
 )
+from app.agents.crypto_agent import CryptoAgent
 
 __all__ = [
     "AgentEvidence",
@@ -14,4 +15,5 @@ __all__ = [
     "AgentStatus",
     "AgentType",
     "BaseAgent",
+    "CryptoAgent",
 ]
