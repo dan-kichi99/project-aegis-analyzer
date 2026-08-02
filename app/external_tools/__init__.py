@@ -1,7 +1,16 @@
+from app.external_tools.binwalk_parser import BinwalkParser
+from app.external_tools.binwalk_result import BinwalkAnalysis, BinwalkEntry
+from app.external_tools.binwalk_tool import BinwalkTool
 from app.external_tools.exiftool import ExifTool
 from app.external_tools.file_tool import FileTool
 from app.external_tools.nm_tool import NmTool
 from app.external_tools.objdump_tool import ObjdumpTool
+from app.external_tools.process_request import ExternalProcessRequest
+from app.external_tools.process_result import (
+    ExternalProcessResult,
+    ExternalProcessStatus,
+)
+from app.external_tools.process_runner import ExternalProcessRunner
 from app.external_tools.readelf_tool import ReadelfTool
 from app.external_tools.strings_tool import StringsTool
 from app.external_tools.tool import BaseExternalTool, ExternalToolType
@@ -28,6 +37,10 @@ __all__ = [
     "TARGET_PATH_METADATA_KEY",
     "AllowedTool",
     "BaseExternalTool",
+    "BinwalkAnalysis",
+    "BinwalkEntry",
+    "BinwalkParser",
+    "BinwalkTool",
     "ExifTool",
     "ExternalProcessRequest",
     "ExternalProcessResult",
@@ -52,9 +65,3 @@ __all__ = [
     "ToolRequest",
     "ToolResult",
 ]
-from app.external_tools.process_request import ExternalProcessRequest
-from app.external_tools.process_result import (
-    ExternalProcessResult,
-    ExternalProcessStatus,
-)
-from app.external_tools.process_runner import ExternalProcessRunner

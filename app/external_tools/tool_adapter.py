@@ -74,7 +74,7 @@ class BaseFileExternalTool(BaseExternalTool):
     def _not_run(self, message: str) -> ToolResult:
         return ToolResult(
             tool_type=self.tool_type,
-            status=ExternalToolStatus.NOT_RUN,
+            status=self._not_run_status(),
             summary=message[:MAX_TOOL_RESULT_TEXT_CHARACTERS],
             stdout="",
             stderr="",
@@ -83,12 +83,15 @@ class BaseFileExternalTool(BaseExternalTool):
             error_message=None,
         )
 
+    def _not_run_status(self) -> ExternalToolStatus:
+        return ExternalToolStatus.NOT_RUN
+
     def _to_tool_result(self, result: ExternalProcessResult) -> ToolResult:
         status = self._tool_status(result)
         return ToolResult(
             tool_type=self.tool_type,
             status=status,
-            summary=self._summary(status),
+            summary=self._summary_for_result(result, status),
             stdout=result.stdout,
             stderr=result.stderr,
             exit_code=result.exit_code,
@@ -99,6 +102,13 @@ class BaseFileExternalTool(BaseExternalTool):
                 else None
             ),
         )
+
+    def _summary_for_result(
+        self,
+        result: ExternalProcessResult,
+        status: ExternalToolStatus,
+    ) -> str:
+        return self._summary(status)
 
     def _tool_status(self, result: ExternalProcessResult) -> ExternalToolStatus:
         if result.status is ExternalProcessStatus.REJECTED:
