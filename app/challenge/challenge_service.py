@@ -1,8 +1,11 @@
+from datetime import datetime, timezone
 from pathlib import Path
 
 from app.analyzer.analyzer import Analyzer
 from app.challenge.challenge_input import ChallengeInput
 from app.controller.controller import Controller
+from app.events.analysis_event import AnalysisEvent, AnalysisEventType
+from app.events.event_publisher import EventPublisher
 from app.file.file_analysis_result import FileAnalysisResult
 from app.file.file_loader import FileLoader
 from app.file.static_file_analyzer import StaticFileAnalyzer
@@ -21,6 +24,7 @@ class ChallengeService:
         analyzer: Analyzer,
         file_loader: FileLoader | None = None,
         file_analyzer: StaticFileAnalyzer | None = None,
+        event_publisher: EventPublisher | None = None,
     ) -> None:
         self.controller = controller
         self._analyzer = analyzer
@@ -29,6 +33,7 @@ class ChallengeService:
         self._zip_analyzer = ZipArchiveAnalyzer(self.file_analyzer)
         self.flag_extractor = FlagExtractor()
         self._rsa_analyzer = RsaAnalyzer()
+        self._event_publisher = event_publisher
 
     def solve(
         self,
@@ -37,6 +42,12 @@ class ChallengeService:
     ) -> JudgeResult:
         """問題文とファイルパスを受け取り、解析パイプラインを実行する。"""
         paths = file_paths or []
+        self._publish(
+            AnalysisEventType.ANALYSIS_STARTED,
+            "解析を開始しました。",
+            "input",
+            {"file_count": len(paths)},
+        )
         analysis_results: list[FileAnalysisResult] = []
 
         for path in paths:
@@ -56,8 +67,8 @@ class ChallengeService:
 
         local_result = self._find_local_flag(challenge)
         if local_result is not None:
-            flag, reason = local_result
-            return JudgeResult(
+            flag, reason, method = local_result
+            result = JudgeResult(
                 category=self._analyzer.analyze(question),
                 answer="添付ファイル内からFlag候補を検出しました。",
                 flag=flag,
@@ -67,13 +78,23 @@ class ChallengeService:
                 next_actions=[],
                 gemini_prompt=None,
             )
+            self._publish(
+                AnalysisEventType.LOCAL_SOLUTION_FOUND,
+                "ローカル解析でFlag候補を検出しました。",
+                "local_solver",
+                {"category": result.category, "method": method},
+            )
+            self._publish_completed(result)
+            return result
 
-        return self.controller.process_challenge(challenge)
+        result = self.controller.process_challenge(challenge)
+        self._publish_completed(result)
+        return result
 
     def _find_local_flag(
         self,
         challenge: ChallengeInput,
-    ) -> tuple[str, str] | None:
+    ) -> tuple[str, str, str] | None:
         for file_result in challenge.files:
             if (
                 file_result.appended_data is not None
@@ -92,6 +113,7 @@ class ChallengeService:
                             f"offset：0x{file_result.appended_data.appended_offset:X} "
                             f"推定形式：{file_result.appended_data.detected_type}"
                         ),
+                        "appended_data",
                     )
 
             if file_result.text_content is not None:
@@ -105,6 +127,7 @@ class ChallengeService:
                             f"ファイル「{file_result.name}」の"
                             "テキスト内容から検出しました。"
                         ),
+                        "direct_flag",
                     )
 
             for extracted_string in file_result.strings:
@@ -116,6 +139,7 @@ class ChallengeService:
                             f"ファイル「{file_result.name}」の"
                             "抽出文字列から検出しました。"
                         ),
+                        "direct_flag",
                     )
 
             if file_result.xor_result is not None:
@@ -130,6 +154,7 @@ class ChallengeService:
                                 f"鍵：0x{candidate.key:02X} "
                                 f"検出元：{candidate.source}"
                             ),
+                            "single_byte_xor",
                         )
 
             if file_result.caesar_result is not None:
@@ -145,6 +170,7 @@ class ChallengeService:
                                 f"シフト：{candidate.shift}{rot13} "
                                 f"検出元：{candidate.source}"
                             ),
+                            "caesar",
                         )
 
         if challenge.rsa_result is not None:
@@ -160,6 +186,39 @@ class ChallengeService:
                             "RSA復号結果から検出しました。"
                             f"方式：{attempt.method}"
                         ),
+                        "rsa",
                     )
 
         return None
+
+    def _publish_completed(self, result: JudgeResult) -> None:
+        if self._event_publisher is None:
+            return
+        self._publish(
+            AnalysisEventType.ANALYSIS_COMPLETED,
+            "解析が完了しました。",
+            "completed",
+            {
+                "solved": result.flag is not None,
+                "category": result.category,
+            },
+        )
+
+    def _publish(
+        self,
+        event_type: AnalysisEventType,
+        message: str,
+        phase: str,
+        metadata: dict[str, object],
+    ) -> None:
+        if self._event_publisher is None:
+            return
+        self._event_publisher.publish(
+            AnalysisEvent(
+                event_type=event_type,
+                message=message,
+                phase=phase,
+                timestamp=datetime.now(timezone.utc),
+                metadata=metadata,
+            )
+        )

@@ -1,10 +1,14 @@
 import sys
+from datetime import datetime, timezone
 
 from app.analyzer.analyzer import Analyzer
 from app.challenge.challenge_service import ChallengeService
 from app.client.openai_client import OpenAIClient
 from app.config import Config
 from app.controller.controller import Controller
+from app.events.analysis_event import AnalysisEvent, AnalysisEventType
+from app.events.cli_event_subscriber import CliEventSubscriber
+from app.events.event_publisher import EventPublisher
 from app.judge.confidence_estimator import ConfidenceEstimator
 from app.judge.flag_extractor import FlagExtractor
 from app.judge.gemini_prompt_generator import GeminiPromptGenerator
@@ -32,6 +36,9 @@ def parse_file_paths(raw_input: str) -> list[str]:
 def main() -> None:
     """Project Aegis Production CLI エントリーポイント。"""
 
+    publisher = EventPublisher()
+    publisher.subscribe(CliEventSubscriber())
+
     config = Config()
 
     ai_client = OpenAIClient(
@@ -58,11 +65,13 @@ def main() -> None:
         prompt_manager=prompt_manager,
         ai_client=ai_client,
         judge=judge,
+        event_publisher=publisher,
     )
 
     service = ChallengeService(
         controller=controller,
         analyzer=analyzer,
+        event_publisher=publisher,
     )
 
     formatter = ResultFormatter()
@@ -78,14 +87,6 @@ def main() -> None:
 
         file_paths = parse_file_paths(raw_files)
 
-        print(
-            "========================\n"
-            "Project Aegis\n"
-            "解析中...\n"
-            "========================",
-            flush=True,
-        )
-
         result = service.solve(
             question=question,
             file_paths=file_paths,
@@ -95,14 +96,31 @@ def main() -> None:
         print(formatted_output)
 
     except RuntimeError as error:
+        _publish_failure(publisher, error)
         print(
             "AIとの通信中にエラーが発生しました。\n"
             f"詳細：{error}"
         )
         sys.exit(1)
     except (FileNotFoundError, ValueError) as error:
+        _publish_failure(publisher, error)
         print(f"エラー：{error}")
         sys.exit(1)
+
+
+def _publish_failure(
+    publisher: EventPublisher,
+    error: Exception,
+) -> None:
+    publisher.publish(
+        AnalysisEvent(
+            event_type=AnalysisEventType.ANALYSIS_FAILED,
+            message="解析中にエラーが発生しました。",
+            phase="completed",
+            timestamp=datetime.now(timezone.utc),
+            metadata={"error_type": type(error).__name__},
+        )
+    )
 
 
 if __name__ == "__main__":
