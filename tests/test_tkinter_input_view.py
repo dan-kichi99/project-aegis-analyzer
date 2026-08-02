@@ -23,6 +23,7 @@ class FakeWidget:
 
     def delete(self, *_values):
         self.items.clear()
+        self.content = ""
 
     def insert(self, _position, value):
         self.items.append(value)
@@ -119,3 +120,27 @@ def test_view_has_no_analysis_execution_dependencies():
         "mainloop",
     ):
         assert forbidden not in source
+
+
+def test_set_enabled_and_clear_reset_all_input_widgets(monkeypatch):
+    _module, view = _view(monkeypatch)
+    view.question_text.content = "old question"
+    view.error_label.configure(text="old error")
+    view.set_enabled(False)
+    for widget in (
+        view.question_text,
+        view.file_list,
+        view.add_button,
+        view.remove_button,
+        view.clear_button,
+        view.prepare_button,
+    ):
+        assert widget.values["state"] == "disabled"
+    assert view.cancel_button.values["state"] == "normal"
+    view.set_enabled(True)
+    assert view.prepare_button.values["state"] == "normal"
+    assert view.cancel_button.values["state"] == "disabled"
+    view.clear()
+    assert view.question_text.content == ""
+    assert view.file_list.items == []
+    assert view.error_label.values["text"] == ""

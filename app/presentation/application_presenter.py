@@ -161,6 +161,10 @@ class ApplicationPresenter:
                 ApplicationStatus.FAILED,
                 "解析中にエラーが発生しました。",
             ),
+            AnalysisEventType.ANALYSIS_CANCELLED: (
+                ApplicationStatus.IDLE,
+                "解析をキャンセルしました。",
+            ),
         }
         return values.get(
             event_type,

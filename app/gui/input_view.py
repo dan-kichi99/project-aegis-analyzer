@@ -13,9 +13,11 @@ class AnalysisInputView:
         root: tk.Misc,
         presenter: AnalysisInputPresenter,
         on_analysis_requested: Callable[[AnalysisRequest], None] | None = None,
+        on_cancel_requested: Callable[[], None] | None = None,
     ) -> None:
         self.presenter = presenter
         self.on_analysis_requested = on_analysis_requested
+        self.on_cancel_requested = on_cancel_requested
         self.state = presenter.initial_state()
         self.frame = tk.Frame(root)
         tk.Label(self.frame, text="問題文").pack(anchor="w")
@@ -36,15 +38,20 @@ class AnalysisInputView:
         self.prepare_button = tk.Button(
             self.frame, text="解析準備", command=self.prepare_analysis
         )
+        self.cancel_button = tk.Button(
+            self.frame, text="キャンセル", command=self.cancel_analysis
+        )
         for button in (
             self.add_button,
             self.remove_button,
             self.clear_button,
             self.prepare_button,
+            self.cancel_button,
         ):
             button.pack(side="left")
         self.error_label = tk.Label(self.frame, text="", fg="red")
         self.error_label.pack(fill="x")
+        self.set_enabled(True)
 
     def add_files(self) -> None:
         selected = filedialog.askopenfilenames(parent=self.frame)
@@ -65,6 +72,31 @@ class AnalysisInputView:
     def clear_files(self) -> None:
         self.state = self.presenter.clear_files(self.state)
         self._sync_file_list()
+
+    def clear(self) -> None:
+        self.state = self.presenter.initial_state()
+        self.question_text.delete("1.0", tk.END)
+        self._sync_file_list()
+        self.error_label.configure(text="")
+
+    def set_enabled(self, enabled: bool) -> None:
+        state = tk.NORMAL if enabled else tk.DISABLED
+        self.question_text.configure(state=state)
+        self.file_list.configure(state=state)
+        for button in (
+            self.add_button,
+            self.remove_button,
+            self.clear_button,
+            self.prepare_button,
+        ):
+            button.configure(state=state)
+        self.cancel_button.configure(
+            state=tk.DISABLED if enabled else tk.NORMAL
+        )
+
+    def cancel_analysis(self) -> None:
+        if self.on_cancel_requested is not None:
+            self.on_cancel_requested()
 
     def prepare_analysis(self) -> None:
         question = self.question_text.get("1.0", "end-1c")

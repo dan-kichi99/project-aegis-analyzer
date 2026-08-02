@@ -1,5 +1,6 @@
 from app.gui.action_approval_view import ActionApprovalView
 from app.gui.agent_result_view import AgentResultView
+from app.gui.application_shell import ProjectAegisApplicationShell
 from app.gui.budget_view import BudgetView
 from app.gui.code_execution_view import CodeExecutionView
 from app.gui.event_bridge import TkEventBridge
@@ -18,5 +19,6 @@ __all__ = [
     "BudgetView",
     "CodeExecutionView",
     "ExternalToolView",
+    "ProjectAegisApplicationShell",
     "TkEventBridge",
 ]

@@ -19,6 +19,7 @@ class AnalysisEventType(str, Enum):
     AI_ANALYSIS_COMPLETED = "ai_analysis_completed"
     ANALYSIS_COMPLETED = "analysis_completed"
     ANALYSIS_FAILED = "analysis_failed"
+    ANALYSIS_CANCELLED = "analysis_cancelled"
 
 
 @dataclass(slots=True, frozen=True)

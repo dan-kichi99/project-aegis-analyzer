@@ -35,6 +35,9 @@ class TkEventBridge:
     def state(self) -> ApplicationState:
         return self._state
 
+    def set_state(self, state: ApplicationState) -> None:
+        self._state = state
+
     def start(self) -> None:
         if self._running:
             return

@@ -45,6 +45,7 @@ def test_defines_all_required_event_types():
         "ai_analysis_completed",
         "analysis_completed",
         "analysis_failed",
+        "analysis_cancelled",
     }
 
 
