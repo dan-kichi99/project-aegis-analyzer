@@ -254,6 +254,7 @@ class IterationActionPlanner:
                     "仮説の状態とconfidenceに基づく候補です。",
                     not high_confidence,
                     {
+                        "analysis_type": "hypothesis_review",
                         "hypothesis_id": hypothesis.hypothesis_id,
                         "confidence": confidence,
                     },

@@ -138,6 +138,39 @@ class IterationStateManager:
             updated_at=updated_at,
         )
 
+    def complete_action(
+        self,
+        session: IterationSession,
+        action_id: str,
+        status: IterationActionStatus,
+        updated_at: datetime,
+    ) -> IterationSession:
+        self._require_active(session)
+        self._require_time(session, updated_at)
+        if status not in {
+            IterationActionStatus.COMPLETED,
+            IterationActionStatus.FAILED,
+            IterationActionStatus.SKIPPED,
+        }:
+            raise ValueError("Actionの最終状態はCOMPLETED、FAILED、SKIPPEDだけです。")
+        selected = next(
+            (action for action in session.pending_actions if action.action_id == action_id),
+            None,
+        )
+        if selected is None:
+            raise ValueError("指定されたaction_idはpending_actionsにありません。")
+        if selected.status is not IterationActionStatus.APPROVED:
+            raise ValueError("最終化できるのはAPPROVED Actionだけです。")
+        return replace(
+            session,
+            pending_actions=tuple(
+                action
+                for action in session.pending_actions
+                if action.action_id != action_id
+            ),
+            updated_at=updated_at,
+        )
+
     def _merge_by_id(
         self,
         current: tuple[_T, ...],

@@ -289,7 +289,11 @@ def test_high_confidence_open_or_supported_hypothesis_uses_local_analysis(status
     action = _plan(hypotheses=(_hypothesis(status=status),))[0]
     assert action.action_type is IterationActionType.RUN_LOCAL_ANALYSIS
     assert action.priority == 75
-    assert action.metadata == {"hypothesis_id": "h1", "confidence": 80}
+    assert action.metadata == {
+        "analysis_type": "hypothesis_review",
+        "hypothesis_id": "h1",
+        "confidence": 80,
+    }
     assert "sensitive full hypothesis" not in repr(action.metadata)
 
 
