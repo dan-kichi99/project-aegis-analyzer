@@ -126,11 +126,42 @@ class BaseFileExternalTool(BaseExternalTool):
                     continue
                 evidence.append(
                     ToolEvidence(
-                        source=f"{self.tool_type.value}:{stream_name}",
+                        source=self._evidence_source(stream_name),
                         detail=detail[:MAX_TOOL_RESULT_TEXT_CHARACTERS],
-                        confidence=None,
+                        confidence=self._evidence_confidence(),
                     )
                 )
                 if len(evidence) == MAX_TOOL_EVIDENCE_ITEMS:
                     return tuple(evidence)
         return tuple(evidence)
+
+    def _evidence_source(self, stream_name: str) -> str:
+        return f"{self.tool_type.value}:{stream_name}"
+
+    def _evidence_confidence(self) -> int | None:
+        return None
+
+
+class BaseBinaryInspectionTool(BaseFileExternalTool):
+    """読み取り専用バイナリToolに共通する結果変換を提供する。"""
+
+    @property
+    @abstractmethod
+    def completed_summary(self) -> str:
+        raise NotImplementedError
+
+    def _tool_status(self, result: ExternalProcessResult) -> ExternalToolStatus:
+        if result.status is ExternalProcessStatus.COMPLETED:
+            return ExternalToolStatus.COMPLETED
+        return super()._tool_status(result)
+
+    def _summary(self, status: ExternalToolStatus) -> str:
+        if status is ExternalToolStatus.COMPLETED:
+            return self.completed_summary
+        return super()._summary(status)
+
+    def _evidence_source(self, stream_name: str) -> str:
+        return f"{self.tool_type.value}.{stream_name}"
+
+    def _evidence_confidence(self) -> int | None:
+        return 70

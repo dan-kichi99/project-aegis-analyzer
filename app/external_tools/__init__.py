@@ -1,5 +1,8 @@
 from app.external_tools.exiftool import ExifTool
 from app.external_tools.file_tool import FileTool
+from app.external_tools.nm_tool import NmTool
+from app.external_tools.objdump_tool import ObjdumpTool
+from app.external_tools.readelf_tool import ReadelfTool
 from app.external_tools.strings_tool import StringsTool
 from app.external_tools.tool import BaseExternalTool, ExternalToolType
 from app.external_tools.tool_adapter import TARGET_PATH_METADATA_KEY
@@ -36,6 +39,9 @@ __all__ = [
     "ExternalToolStatus",
     "ExternalToolType",
     "FileTool",
+    "NmTool",
+    "ObjdumpTool",
+    "ReadelfTool",
     "StringsTool",
     "ToolArgumentKind",
     "ToolArgumentRule",
