@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 
+from app.file.pe_analysis_result import PeAnalysisResult
+
 
 @dataclass(slots=True)
 class FileAnalysisResult:
@@ -11,3 +13,4 @@ class FileAnalysisResult:
     detected_type: str
     text_content: str | None
     strings: list[str]
+    pe_info: PeAnalysisResult | None = None

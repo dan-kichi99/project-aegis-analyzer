@@ -3,6 +3,7 @@ from app.file.file_analysis_result import FileAnalysisResult
 from app.file.file_input import FileInput
 from app.file.file_type_detector import FileTypeDetector
 from app.file.image_metadata_extractor import extract_image_metadata
+from app.file.pe_analyzer import PeAnalyzer
 
 _ANALYSIS_BYTE_LIMIT = 2_000_000
 _MIN_STRING_LENGTH = 4
@@ -17,6 +18,7 @@ class StaticFileAnalyzer:
         type_detector: FileTypeDetector | None = None,
     ) -> None:
         self.type_detector = type_detector or FileTypeDetector()
+        self._pe_analyzer = PeAnalyzer()
 
     def analyze(self, file_input: FileInput) -> FileAnalysisResult:
         detected_type = self.type_detector.detect(file_input)
@@ -42,6 +44,11 @@ class StaticFileAnalyzer:
             extracted_strings,
             text_content,
         )
+        pe_info = (
+            self._pe_analyzer.analyze(file_input)
+            if detected_type == "pe"
+            else None
+        )
 
         return FileAnalysisResult(
             name=file_input.name,
@@ -50,6 +57,7 @@ class StaticFileAnalyzer:
             detected_type=detected_type,
             text_content=text_content,
             strings=extracted_strings,
+            pe_info=pe_info,
         )
 
     def _extract_printable_strings(self, content: bytes) -> list[str]:
