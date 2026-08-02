@@ -77,6 +77,11 @@ class ApplicationController:
                 request.question,
                 request.file_paths,
                 self._worker_completed,
+                solve_with_cancel=getattr(
+                    self._challenge_service,
+                    "solve_with_cancel",
+                    None,
+                ),
             )
             self._worker = worker
             self._analysis_active = True

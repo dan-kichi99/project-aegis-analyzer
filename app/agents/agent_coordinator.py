@@ -4,10 +4,11 @@ from datetime import datetime, timezone
 from app.agents.agent_aggregate_result import AgentAggregateResult
 from app.agents.agent_input import AgentInput
 from app.agents.agent_planner import AgentPlanner
-from app.agents.agent_result import AgentResult, AgentStatus
+from app.agents.agent_result import AgentResult, AgentStatus, AgentType
 from app.agents.agent_result_aggregator import AgentResultAggregator
 from app.agents.agent_route_result import AgentRouteStatus
 from app.agents.agent_router import AgentRouter
+from app.client.base_client import BaseAIClient
 from app.events.analysis_event import AnalysisEvent, AnalysisEventType
 from app.events.event_publisher import EventPublisher
 
@@ -32,6 +33,18 @@ class AgentCoordinator:
         self.aggregator = aggregator
         self.max_agents = max_agents
         self._event_publisher = event_publisher
+
+    def with_ai_clients(
+        self,
+        clients: dict[AgentType, BaseAIClient],
+    ) -> "AgentCoordinator":
+        return AgentCoordinator(
+            planner=self.planner,
+            router=self.router.with_ai_clients(clients),
+            aggregator=self.aggregator,
+            max_agents=self.max_agents,
+            event_publisher=self._event_publisher,
+        )
 
     def analyze(self, agent_input: AgentInput) -> AgentAggregateResult:
         plan = self.planner.plan(agent_input)

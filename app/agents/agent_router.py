@@ -2,6 +2,7 @@ from app.agents.agent import BaseAgent
 from app.agents.agent_input import AgentInput
 from app.agents.agent_result import AgentStatus, AgentType
 from app.agents.agent_route_result import AgentRouteResult, AgentRouteStatus
+from app.client.base_client import BaseAIClient
 
 MAX_ERROR_MESSAGE_CHARACTERS = 500
 
@@ -49,6 +50,23 @@ class AgentRouter:
 
     def has_agent(self, agent_type: AgentType) -> bool:
         return agent_type in self._registered
+
+    def with_ai_clients(
+        self,
+        clients: dict[AgentType, BaseAIClient],
+    ) -> "AgentRouter":
+        agents: list[BaseAgent] = []
+        for agent in self._agents:
+            client = clients.get(agent.agent_type)
+            if client is None:
+                agents.append(agent)
+                continue
+            clone = getattr(agent, "with_ai_client", None)
+            if clone is None:
+                agents.append(agent)
+            else:
+                agents.append(clone(client))
+        return AgentRouter(tuple(agents))
 
     def route(self, agent_input: AgentInput) -> AgentRouteResult:
         category = agent_input.category

@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -12,6 +13,8 @@ from app.file.static_file_analyzer import StaticFileAnalyzer
 from app.file.zip_archive_analyzer import ZipArchiveAnalyzer
 from app.judge.flag_extractor import FlagExtractor
 from app.judge.judge_result import JudgeResult
+from app.optimization.ai_usage_result import ChallengeExecutionResult
+from app.optimization.ai_usage_tracker import AiUsageTracker
 from app.solver.rsa_analyzer import RsaAnalyzer
 
 
@@ -41,6 +44,15 @@ class ChallengeService:
         file_paths: list[str | Path] | None = None,
     ) -> JudgeResult:
         """問題文とファイルパスを受け取り、解析パイプラインを実行する。"""
+        return self.solve_with_usage(question, file_paths).result
+
+    def solve_with_usage(
+        self,
+        question: str,
+        file_paths: list[str | Path] | None = None,
+        *,
+        cancel_requested: Callable[[], bool] | None = None,
+    ) -> ChallengeExecutionResult:
         paths = file_paths or []
         self._publish(
             AnalysisEventType.ANALYSIS_STARTED,
@@ -85,11 +97,44 @@ class ChallengeService:
                 {"category": result.category, "method": method},
             )
             self._publish_completed(result)
-            return result
+            return ChallengeExecutionResult(
+                result=result,
+                ai_usage=AiUsageTracker().snapshot(
+                    knowledge_retrieval_count=0,
+                    agent_run_count=0,
+                    local_solution_avoided_ai=True,
+                ),
+            )
 
-        result = self.controller.process_challenge(challenge)
-        self._publish_completed(result)
-        return result
+        if isinstance(self.controller, Controller):
+            execution = self.controller.process_challenge_with_usage(
+                challenge,
+                cancel_requested=cancel_requested,
+            )
+        else:
+            result = self.controller.process_challenge(challenge)
+            execution = ChallengeExecutionResult(
+                result=result,
+                ai_usage=AiUsageTracker().snapshot(
+                    knowledge_retrieval_count=1,
+                    agent_run_count=0,
+                    local_solution_avoided_ai=False,
+                ),
+            )
+        self._publish_completed(execution.result)
+        return execution
+
+    def solve_with_cancel(
+        self,
+        question: str,
+        file_paths: list[str | Path] | None,
+        cancel_requested: Callable[[], bool],
+    ) -> JudgeResult:
+        return self.solve_with_usage(
+            question,
+            file_paths,
+            cancel_requested=cancel_requested,
+        ).result
 
     def _find_local_flag(
         self,

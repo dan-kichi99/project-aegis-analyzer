@@ -2,6 +2,8 @@ import re
 from dataclasses import dataclass
 from enum import Enum
 
+from app.judge.judge_result import JudgeResult
+
 _SHA256_PATTERN = re.compile(r"[0-9a-f]{64}\Z")
 MAX_AI_USAGE_RECORDS = 100
 MAX_BLOCK_REASON_CHARACTERS = 500
@@ -123,3 +125,9 @@ class ChallengeAiUsage:
             raise ValueError("unique_prompt_count is inconsistent with records.")
         if self.duplicate_prompt_count != len(self.records) - len(fingerprints):
             raise ValueError("duplicate_prompt_count is inconsistent with records.")
+
+
+@dataclass(slots=True, frozen=True)
+class ChallengeExecutionResult:
+    result: JudgeResult
+    ai_usage: ChallengeAiUsage

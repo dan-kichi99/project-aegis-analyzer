@@ -4,6 +4,7 @@ from app.optimization.ai_usage_result import (
     AiCallRecord,
     AiCallSource,
     ChallengeAiUsage,
+    ChallengeExecutionResult,
 )
 from app.optimization.ai_usage_tracker import AiUsageTracker
 from app.optimization.challenge_ai_session import (
@@ -21,5 +22,6 @@ __all__ = [
     "AiUsageTracker",
     "ChallengeAiSession",
     "ChallengeAiUsage",
+    "ChallengeExecutionResult",
     "SourceBoundAIClient",
 ]

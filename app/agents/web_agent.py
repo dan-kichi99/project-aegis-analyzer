@@ -74,6 +74,9 @@ class WebAgent(BaseAgent):
     def agent_type(self) -> AgentType:
         return AgentType.WEB
 
+    def with_ai_client(self, ai_client: BaseAIClient) -> "WebAgent":
+        return WebAgent(ai_client, self._flag_extractor, self._prompt_manager)
+
     def analyze(self, agent_input: AgentInput) -> AgentResult:
         matches_target = (
             agent_input.target_agent is self.agent_type
