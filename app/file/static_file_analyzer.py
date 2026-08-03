@@ -8,6 +8,7 @@ from app.file.image_metadata_extractor import extract_image_metadata
 from app.file.pe_analyzer import PeAnalyzer
 from app.file.rev_clue_analyzer import RevClueAnalyzer
 from app.solver.caesar_analyzer import CaesarAnalyzer
+from app.solver.recursive_encoding_analyzer import RecursiveEncodingAnalyzer
 from app.solver.single_byte_xor_analyzer import SingleByteXorAnalyzer
 
 _ANALYSIS_BYTE_LIMIT = 2_000_000
@@ -29,6 +30,7 @@ class StaticFileAnalyzer:
         self._xor_analyzer = SingleByteXorAnalyzer()
         self._caesar_analyzer = CaesarAnalyzer()
         self._appended_data_analyzer = AppendedDataAnalyzer(self.type_detector)
+        self._recursive_encoding_analyzer = RecursiveEncodingAnalyzer()
 
     def analyze(self, file_input: FileInput) -> FileAnalysisResult:
         detected_type = self.type_detector.detect(file_input)
@@ -86,6 +88,10 @@ class StaticFileAnalyzer:
             pe_info=pe_info,
             elf_info=elf_info,
         )
+        recursive_encoding_result = self._recursive_encoding_analyzer.analyze(
+            text_content=text_content,
+            strings=extracted_strings,
+        )
 
         return FileAnalysisResult(
             name=file_input.name,
@@ -100,6 +106,7 @@ class StaticFileAnalyzer:
             xor_result=xor_result,
             caesar_result=caesar_result,
             appended_data=appended_data,
+            recursive_encoding_result=recursive_encoding_result,
         )
 
     def _extract_printable_strings(self, content: bytes) -> list[str]:

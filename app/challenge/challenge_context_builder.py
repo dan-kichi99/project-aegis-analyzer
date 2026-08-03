@@ -4,6 +4,7 @@ from app.file.elf_analysis_result import ElfAnalysisResult
 from app.file.pe_analysis_result import PeAnalysisResult
 from app.file.rev_clue_result import RevClueResult
 from app.solver.caesar_result import CaesarResult
+from app.solver.recursive_encoding_result import RecursiveEncodingResult
 from app.solver.rsa_result import RsaResult
 from app.solver.xor_result import SingleByteXorResult
 
@@ -71,11 +72,37 @@ class ChallengeContextBuilder:
                 self._append_caesar_candidates(lines, file_res.caesar_result)
             if file_res.appended_data is not None:
                 self._append_appended_data(lines, file_res.appended_data)
+            if file_res.recursive_encoding_result is not None:
+                self._append_recursive_encoding(
+                    lines, file_res.recursive_encoding_result
+                )
 
         if challenge.rsa_result is not None:
             self._append_rsa_result(lines, challenge.rsa_result)
 
         return "\n".join(lines)
+
+    def _append_recursive_encoding(
+        self,
+        lines: list[str],
+        result: RecursiveEncodingResult,
+    ) -> None:
+        lines.append("\n再帰エンコード解析：")
+        for step in result.steps[:20]:
+            shift = (
+                f" shift={step.caesar_shift}"
+                if step.caesar_shift is not None
+                else ""
+            )
+            flag = (
+                f" flag_candidate={step.flag_candidate}"
+                if step.flag_candidate is not None
+                else ""
+            )
+            lines.append(
+                f'- depth={step.depth} method={step.method}{shift} '
+                f'output="{step.output_preview}"{flag}'
+            )
 
     def _append_pe_info(
         self,

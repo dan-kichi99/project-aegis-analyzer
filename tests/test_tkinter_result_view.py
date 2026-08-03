@@ -2,6 +2,8 @@ import importlib
 import inspect
 from dataclasses import replace
 
+import pytest
+
 from app.presentation import (
     AgentViewModel,
     ApplicationPresenter,
@@ -14,6 +16,9 @@ class FakeWidget:
         self.values = values
         self.items = []
         self.content = ""
+        self.bindings = {}
+        self.clipboard_calls = 0
+        self.clipboard_content = None
 
     def pack(self, **_values):
         return None
@@ -31,12 +36,25 @@ class FakeWidget:
         else:
             self.items.append(value)
 
+    def bind(self, event, callback):
+        self.bindings[event] = callback
+
+    def invoke(self):
+        return self.values["command"]()
+
+    def clipboard_clear(self):
+        self.clipboard_calls += 1
+        self.clipboard_content = None
+
+    def clipboard_append(self, value):
+        self.clipboard_content = value
+
 
 def _patch_widgets(monkeypatch):
     result_module = importlib.import_module("app.gui.result_view")
     agent_module = importlib.import_module("app.gui.agent_result_view")
     for module in (result_module, agent_module):
-        for name in ("Frame", "Label", "Text", "Listbox"):
+        for name in ("Frame", "Label", "Text", "Listbox", "Button"):
             monkeypatch.setattr(module.tk, name, FakeWidget)
     return result_module, agent_module
 
@@ -115,6 +133,87 @@ def test_result_text_warning_and_actions_are_presented_without_interpretation(
     assert view.next_actions_list.items == ["最初の手順", "次の手順"]
     assert view.answer_text.values["state"] == "disabled"
     assert view.reason_text.values["state"] == "disabled"
+
+
+def test_copy_button_enabled_and_copies_flag_via_clipboard_api(monkeypatch):
+    result_module, _agent_module = _patch_widgets(monkeypatch)
+    view = result_module.AnalysisResultView(object())
+    view.render(_result(flag_candidate="FLAG{copyme}"))
+    assert view.copy_button.values["state"] == "normal"
+
+    view.copy_button.invoke()
+
+    assert view.frame.clipboard_calls == 1
+    assert view.frame.clipboard_content == "FLAG{copyme}"
+    assert view.copy_message_label.values["text"] == "コピーしました。"
+
+
+def test_copy_button_disabled_and_no_clipboard_call_without_flag(monkeypatch):
+    result_module, _agent_module = _patch_widgets(monkeypatch)
+    view = result_module.AnalysisResultView(object())
+    view.render(_result(flag_candidate=None))
+    assert view.copy_button.values["state"] == "disabled"
+
+    view.flag_candidate_label.bindings["<Double-Button-1>"](None)
+
+    assert view.frame.clipboard_calls == 0
+    assert view.copy_message_label.values["text"] == ""
+
+
+def test_double_click_on_flag_label_copies_flag(monkeypatch):
+    result_module, _agent_module = _patch_widgets(monkeypatch)
+    view = result_module.AnalysisResultView(object())
+    view.render(_result(flag_candidate="FLAG{double}"))
+
+    view.flag_candidate_label.bindings["<Double-Button-1>"](None)
+
+    assert view.frame.clipboard_calls == 1
+    assert view.frame.clipboard_content == "FLAG{double}"
+    assert view.copy_message_label.values["text"] == "コピーしました。"
+
+
+def test_clear_removes_previous_flag_and_copy_message(monkeypatch):
+    result_module, _agent_module = _patch_widgets(monkeypatch)
+    view = result_module.AnalysisResultView(object())
+    view.render(_result(flag_candidate="FLAG{old}"))
+    view.copy_button.invoke()
+
+    view.clear()
+
+    assert view.flag_candidate_label.values["text"] == "Flag候補：候補なし"
+    assert view.copy_button.values["state"] == "disabled"
+    assert view.copy_message_label.values["text"] == ""
+    view.flag_candidate_label.bindings["<Double-Button-1>"](None)
+    assert view.frame.clipboard_calls == 1
+
+
+def test_rerender_does_not_leak_previous_flag_or_copy_message(monkeypatch):
+    result_module, _agent_module = _patch_widgets(monkeypatch)
+    view = result_module.AnalysisResultView(object())
+    view.render(_result(flag_candidate="FLAG{first}"))
+    view.copy_button.invoke()
+
+    view.render(_result(flag_candidate=None))
+
+    assert view.flag_candidate_label.values["text"] == "Flag候補：候補なし"
+    assert view.copy_button.values["state"] == "disabled"
+    assert view.copy_message_label.values["text"] == ""
+    view.flag_candidate_label.bindings["<Double-Button-1>"](None)
+    assert view.frame.clipboard_calls == 1
+
+
+def test_copy_does_not_swallow_callback_exceptions(monkeypatch):
+    result_module, _agent_module = _patch_widgets(monkeypatch)
+    view = result_module.AnalysisResultView(object())
+    view.render(_result(flag_candidate="FLAG{boom}"))
+
+    def _raise():
+        raise RuntimeError("clipboard unavailable")
+
+    monkeypatch.setattr(view.frame, "clipboard_clear", _raise)
+
+    with pytest.raises(RuntimeError):
+        view.copy_button.invoke()
 
 
 def test_agent_none_and_clear_remove_previous_values(monkeypatch):

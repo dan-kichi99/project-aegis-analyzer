@@ -130,6 +130,20 @@ class CryptoAgent(BaseAgent):
             rsa_flags.extend(self._flags(rsa.plaintext))
 
         for file_result in challenge.files:
+            recursive = file_result.recursive_encoding_result
+            if recursive is not None:
+                for step in recursive.steps[:MAX_EVIDENCE_ITEMS]:
+                    self._append_evidence(
+                        evidence,
+                        f"recursive_encoding:{file_result.name}",
+                        (
+                            f"method={step.method}, depth={step.depth}, "
+                            f"shift={step.caesar_shift}, "
+                            f"output={step.output_preview}, "
+                            f"flag_candidate={step.flag_candidate}"
+                        ),
+                        90 if step.flag_candidate else 60,
+                    )
             if file_result.text_content:
                 self._append_evidence(
                     evidence,

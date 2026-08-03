@@ -11,6 +11,10 @@ class AnalysisResultView:
         self.category_label = tk.Label(self.frame, text="")
         self.confidence_label = tk.Label(self.frame, text="")
         self.flag_candidate_label = tk.Label(self.frame, text="")
+        self.copy_button = tk.Button(
+            self.frame, text="コピー", command=self._copy_flag, state=tk.DISABLED
+        )
+        self.copy_message_label = tk.Label(self.frame, text="")
         self.warning_label = tk.Label(self.frame, text="", fg="red")
         self.answer_heading = tk.Label(self.frame, text="回答")
         self.answer_text = tk.Text(self.frame, state="disabled")
@@ -18,11 +22,14 @@ class AnalysisResultView:
         self.reason_text = tk.Text(self.frame, state="disabled")
         self.next_actions_heading = tk.Label(self.frame, text="次のAction")
         self.next_actions_list = tk.Listbox(self.frame)
+        self.flag_candidate_label.bind("<Double-Button-1>", self._on_flag_double_click)
         for widget in (
             self.solved_label,
             self.category_label,
             self.confidence_label,
             self.flag_candidate_label,
+            self.copy_button,
+            self.copy_message_label,
             self.warning_label,
             self.answer_heading,
             self.answer_text,
@@ -43,8 +50,12 @@ class AnalysisResultView:
         self.solved_label.configure(text=f"解決状態：{solved}")
         self.category_label.configure(text=f"カテゴリ：{result.category}")
         self.confidence_label.configure(text=f"信頼度：{confidence}")
+        self._current_flag = result.flag_candidate
         self.flag_candidate_label.configure(
             text=f"Flag候補：{result.flag_candidate or '候補なし'}"
+        )
+        self.copy_button.configure(
+            state=tk.NORMAL if result.flag_candidate else tk.DISABLED
         )
         self.warning_label.configure(text=result.warning or "")
         self._set_read_only_text(self.answer_text, result.answer)
@@ -53,14 +64,27 @@ class AnalysisResultView:
             self.next_actions_list.insert(tk.END, action)
 
     def clear(self) -> None:
+        self._current_flag: str | None = None
         self.solved_label.configure(text="解析結果はまだありません")
         self.category_label.configure(text="カテゴリ：未設定")
         self.confidence_label.configure(text="信頼度：未設定")
         self.flag_candidate_label.configure(text="Flag候補：候補なし")
+        self.copy_button.configure(state=tk.DISABLED)
+        self.copy_message_label.configure(text="")
         self.warning_label.configure(text="")
         self._set_read_only_text(self.answer_text, "")
         self._set_read_only_text(self.reason_text, "")
         self.next_actions_list.delete(0, tk.END)
+
+    def _on_flag_double_click(self, _event: object = None) -> None:
+        self._copy_flag()
+
+    def _copy_flag(self) -> None:
+        if not self._current_flag:
+            return
+        self.frame.clipboard_clear()
+        self.frame.clipboard_append(self._current_flag)
+        self.copy_message_label.configure(text="コピーしました。")
 
     @staticmethod
     def _set_read_only_text(widget: tk.Text, value: str) -> None:

@@ -5,6 +5,7 @@ from app.file.elf_analysis_result import ElfAnalysisResult
 from app.file.pe_analysis_result import PeAnalysisResult
 from app.file.rev_clue_result import RevClueResult
 from app.solver.caesar_result import CaesarResult
+from app.solver.recursive_encoding_result import RecursiveEncodingResult
 from app.solver.xor_result import SingleByteXorResult
 
 
@@ -24,3 +25,4 @@ class FileAnalysisResult:
     xor_result: SingleByteXorResult | None = None
     caesar_result: CaesarResult | None = None
     appended_data: AppendedDataResult | None = None
+    recursive_encoding_result: RecursiveEncodingResult | None = None

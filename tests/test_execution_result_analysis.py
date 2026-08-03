@@ -218,6 +218,34 @@ def test_flag_extractor_extract_all_orders_and_deduplicates_exact_matches():
     ) == ("FLAG{one}", "CTF{two}", "flag{one}")
 
 
+def test_flag_extractor_extract_returns_full_picoctf_match():
+    extractor = FlagExtractor()
+
+    assert extractor.extract("picoCTF{abc}") == "picoCTF{abc}"
+
+
+def test_flag_extractor_extract_all_keeps_full_picoctf_without_partial_ctf():
+    extractor = FlagExtractor()
+
+    assert extractor.extract_all(
+        "picoCTF{one} CTF{two} FLAG{three}"
+    ) == ("picoCTF{one}", "CTF{two}", "FLAG{three}")
+
+
+def test_flag_extractor_extract_first_match_contract_unaffected_by_picoctf():
+    extractor = FlagExtractor()
+
+    assert extractor.extract("CTF{first} picoCTF{second}") == "CTF{first}"
+
+
+def test_flag_extractor_extract_all_dedup_and_order_preserved_with_picoctf():
+    extractor = FlagExtractor()
+
+    assert extractor.extract_all(
+        "picoCTF{dup} FLAG{x} picoCTF{dup} CTF{y}"
+    ) == ("picoCTF{dup}", "FLAG{x}", "CTF{y}")
+
+
 def test_analyzer_uses_injected_existing_flag_extractor():
     extractor = FlagExtractor()
     analyzer = ExecutionResultAnalyzer(extractor)

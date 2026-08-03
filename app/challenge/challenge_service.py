@@ -218,6 +218,30 @@ class ChallengeService:
                             "caesar",
                         )
 
+            recursive = file_result.recursive_encoding_result
+            if recursive is not None and recursive.flag_candidates:
+                flag = recursive.flag_candidates[0]
+                step = next(
+                    (
+                        item
+                        for item in recursive.steps
+                        if item.flag_candidate == flag
+                    ),
+                    None,
+                )
+                route = " → ".join(item.method for item in recursive.steps)
+                details = f"Base64深度={step.depth if step else 0}"
+                if step is not None and step.caesar_shift is not None:
+                    details += f" Caesar shift={step.caesar_shift}"
+                return (
+                    flag,
+                    (
+                        f"ファイル「{file_result.name}」の再帰エンコード解析から"
+                        f"Flag候補を検出しました。変換経路={route} {details}"
+                    ),
+                    "recursive_encoding",
+                )
+
         if challenge.rsa_result is not None:
             for attempt in challenge.rsa_result.attempts:
                 if attempt.plaintext is None:
