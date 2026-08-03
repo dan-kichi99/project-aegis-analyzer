@@ -27,6 +27,13 @@ _MIN_STRING_LENGTH = 4
 _MAX_STRINGS = 200
 _MAX_REV_STRINGS = 500
 _MAX_STRING_LENGTH = 300
+_TAR_USTAR_OFFSET = 257
+
+
+def _looks_like_tar_or_gzip(content: bytes) -> bool:
+    if content.startswith(b"\x1f\x8b"):
+        return True
+    return content[_TAR_USTAR_OFFSET : _TAR_USTAR_OFFSET + 5] == b"ustar"
 
 
 class StaticFileAnalyzer:
@@ -49,6 +56,10 @@ class StaticFileAnalyzer:
         self._pdf_static_analyzer = PdfStaticAnalyzer()
         self._jpeg_metadata_analyzer = JpegMetadataAnalyzer()
         self._wav_static_analyzer = WavStaticAnalyzer()
+        # 循環import回避のためTarArchiveAnalyzerはここで遅延importする。
+        from app.file.tar_archive_analyzer import TarArchiveAnalyzer
+
+        self._tar_archive_analyzer = TarArchiveAnalyzer(self)
 
     def analyze(self, file_input: FileInput) -> FileAnalysisResult:
         detected_type = self.type_detector.detect(file_input)
@@ -138,6 +149,19 @@ class StaticFileAnalyzer:
                 wav_static_summary_strings(wav_static_result),
                 max_strings,
             )
+        if _looks_like_tar_or_gzip(file_input.content):
+            # TAR/GZIPはdetected_typeに専用区分がないため、signatureで直接判定する。
+            # 内部ファイルは既存パイプライン(StaticFileAnalyzer)へ流して解析するため
+            # 先頭2MB制限の対象外とし、50MB上限まで全体を読み込む。
+            from app.file.tar_archive_analyzer import tar_archive_summary_strings
+
+            tar_archive_result = self._tar_archive_analyzer.analyze(file_input)
+            if tar_archive_result is not None:
+                self._append_unique_strings(
+                    extracted_strings,
+                    tar_archive_summary_strings(tar_archive_result),
+                    max_strings,
+                )
         pe_info = (
             self._pe_analyzer.analyze(file_input)
             if detected_type == "pe"
