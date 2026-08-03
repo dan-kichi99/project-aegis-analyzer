@@ -18,6 +18,7 @@ from app.optimization.ai_usage_tracker import AiUsageTracker
 from app.solver.java_source_analyzer import JavaSourceAnalyzer
 from app.solver.new_caesar_analyzer import NewCaesarAnalyzer
 from app.solver.python_source_analyzer import PythonSourceAnalyzer
+from app.solver.rev_string_analyzer import RevStringAnalyzer
 from app.solver.rsa_analyzer import RsaAnalyzer
 from app.solver.universal_encoding_analyzer import UniversalEncodingAnalyzer
 
@@ -44,6 +45,7 @@ class ChallengeService:
         self._universal_encoding_analyzer = UniversalEncodingAnalyzer()
         self._java_source_analyzer = JavaSourceAnalyzer()
         self._python_source_analyzer = PythonSourceAnalyzer()
+        self._rev_string_analyzer = RevStringAnalyzer()
         self._event_publisher = event_publisher
 
     def solve(
@@ -347,6 +349,20 @@ class ChallengeService:
                     f" 行番号={candidate.line_number}{prefix}"
                 ),
                 "python_source",
+            )
+
+        rev_string_result = self._rev_string_analyzer.analyze(challenge)
+        if rev_string_result is not None:
+            candidate = rev_string_result.candidates[0]
+            route = " -> ".join(candidate.reconstruction_path)
+            return (
+                candidate.flag_candidate,
+                (
+                    f"{candidate.source}から分割・難読化文字列を復元しました。"
+                    f"復元方式={candidate.method} 使用Strings数={candidate.used_strings} "
+                    f"復元経路={route}"
+                ),
+                "rev_string",
             )
 
         return None
