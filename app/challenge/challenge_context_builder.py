@@ -2,6 +2,12 @@ from app.challenge.challenge_input import ChallengeInput
 from app.file.appended_data_result import AppendedDataResult
 from app.file.elf_analysis_result import ElfAnalysisResult
 from app.file.pe_analysis_result import PeAnalysisResult
+from app.file.png_metadata_analyzer import (
+    PNG_FLAG_PREFIX,
+    PNG_METADATA_PREFIX,
+    PNG_TRAILING_PREFIX,
+    PNG_WARNING_PREFIX,
+)
 from app.file.rev_clue_result import RevClueResult
 from app.solver.caesar_result import CaesarResult
 from app.solver.recursive_encoding_result import RecursiveEncodingResult
@@ -11,6 +17,13 @@ from app.solver.xor_result import SingleByteXorResult
 _TEXT_CONTENT_LIMIT = 10_000
 _STRINGS_CONTEXT_LIMIT = 50
 _ARCHIVE_SUMMARY_PREFIX = "[ARCHIVE_SUMMARY] "
+_PNG_RESERVED_PREFIXES = (
+    PNG_METADATA_PREFIX,
+    PNG_WARNING_PREFIX,
+    PNG_TRAILING_PREFIX,
+    PNG_FLAG_PREFIX,
+)
+_MAX_PNG_CONTEXT_LINES = 20
 
 
 class ChallengeContextBuilder:
@@ -51,10 +64,15 @@ class ChallengeContextBuilder:
                 lines.append(text)
 
             lines.append("\n抽出文字列：")
-            if not file_res.strings:
+            display_strings = [
+                value
+                for value in file_res.strings
+                if not value.startswith(_PNG_RESERVED_PREFIXES)
+            ]
+            if not display_strings:
                 lines.append("なし")
             else:
-                limited_strings = file_res.strings[:_STRINGS_CONTEXT_LIMIT]
+                limited_strings = display_strings[:_STRINGS_CONTEXT_LIMIT]
                 for s in limited_strings:
                     lines.append(f"- {s}")
 
@@ -66,6 +84,8 @@ class ChallengeContextBuilder:
             if archive_summary:
                 lines.append("\nArchive Summary:")
                 lines.extend(f"- {value}" for value in archive_summary[:100])
+
+            self._append_png_metadata(lines, file_res.strings)
 
             if file_res.pe_info is not None:
                 self._append_pe_info(lines, file_res.pe_info)
@@ -113,6 +133,28 @@ class ChallengeContextBuilder:
                 f'- depth={step.depth} method={step.method}{shift} '
                 f'output="{step.output_preview}"{flag}'
             )
+
+    def _append_png_metadata(
+        self,
+        lines: list[str],
+        strings: list[str],
+    ) -> None:
+        display_lines: list[str] = []
+        for value in strings:
+            if value.startswith(PNG_METADATA_PREFIX):
+                display_lines.append(value.removeprefix(PNG_METADATA_PREFIX))
+            elif value.startswith(PNG_WARNING_PREFIX):
+                display_lines.append(
+                    f"warning={value.removeprefix(PNG_WARNING_PREFIX)}"
+                )
+            elif value.startswith(PNG_TRAILING_PREFIX):
+                display_lines.append(
+                    f"trailing_data {value.removeprefix(PNG_TRAILING_PREFIX)}"
+                )
+        if not display_lines:
+            return
+        lines.append("\nPNG Metadata:")
+        lines.extend(f"- {value}" for value in display_lines[:_MAX_PNG_CONTEXT_LINES])
 
     def _append_pe_info(
         self,

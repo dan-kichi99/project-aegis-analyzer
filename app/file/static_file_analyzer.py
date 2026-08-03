@@ -7,6 +7,10 @@ from app.file.file_input import FileInput
 from app.file.file_type_detector import FileTypeDetector
 from app.file.image_metadata_extractor import extract_image_metadata
 from app.file.pe_analyzer import PeAnalyzer
+from app.file.png_metadata_analyzer import (
+    PngMetadataAnalyzer,
+    png_metadata_summary_strings,
+)
 from app.file.rev_clue_analyzer import RevClueAnalyzer
 from app.solver.caesar_analyzer import CaesarAnalyzer
 from app.solver.recursive_encoding_analyzer import RecursiveEncodingAnalyzer
@@ -35,6 +39,7 @@ class StaticFileAnalyzer:
         self._appended_data_analyzer = AppendedDataAnalyzer(self.type_detector)
         self._archive_analyzer = ArchiveAnalyzer()
         self._recursive_encoding_analyzer = RecursiveEncodingAnalyzer()
+        self._png_metadata_analyzer = PngMetadataAnalyzer()
 
     def analyze(self, file_input: FileInput) -> FileAnalysisResult:
         detected_type = self.type_detector.detect(file_input)
@@ -87,6 +92,16 @@ class StaticFileAnalyzer:
                     archive_summary_strings(archive_result),
                     max_strings,
                 )
+        if detected_type == "png":
+            # PNG構造解析は先頭2MB制限の対象外とし、50MB上限まで全体を読み込む。
+            png_metadata_result = self._png_metadata_analyzer.analyze(
+                file_input.content
+            )
+            self._append_unique_strings(
+                extracted_strings,
+                png_metadata_summary_strings(png_metadata_result),
+                max_strings,
+            )
         pe_info = (
             self._pe_analyzer.analyze(file_input)
             if detected_type == "pe"
