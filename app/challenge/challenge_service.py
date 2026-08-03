@@ -17,6 +17,7 @@ from app.optimization.ai_usage_result import ChallengeExecutionResult
 from app.optimization.ai_usage_tracker import AiUsageTracker
 from app.solver.new_caesar_analyzer import NewCaesarAnalyzer
 from app.solver.rsa_analyzer import RsaAnalyzer
+from app.solver.universal_encoding_analyzer import UniversalEncodingAnalyzer
 
 
 class ChallengeService:
@@ -38,6 +39,7 @@ class ChallengeService:
         self.flag_extractor = FlagExtractor()
         self._rsa_analyzer = RsaAnalyzer()
         self._new_caesar_analyzer = NewCaesarAnalyzer()
+        self._universal_encoding_analyzer = UniversalEncodingAnalyzer()
         self._event_publisher = event_publisher
 
     def solve(
@@ -275,6 +277,33 @@ class ChallengeService:
                         ),
                         "new_caesar",
                     )
+
+        universal_result = self._universal_encoding_analyzer.analyze(challenge)
+        if universal_result is not None and universal_result.flag_candidates:
+            step = next(
+                (
+                    item
+                    for flag_candidate in universal_result.flag_candidates
+                    for item in universal_result.steps
+                    if item.flag_candidate == flag_candidate
+                ),
+                None,
+            )
+            if step is None:
+                return None
+            flag = step.flag_candidate
+            if flag is None:
+                return None
+            route = " -> ".join(step.transformation_path)
+            return (
+                flag,
+                (
+                    f"{step.source}からUniversal Encoding解析でFlag候補を検出しました。"
+                    f"変換経路={route} 再帰深度={step.depth} "
+                    f"最終方式={step.method}"
+                ),
+                "universal_encoding",
+            )
 
         return None
 
