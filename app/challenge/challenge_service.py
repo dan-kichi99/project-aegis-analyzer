@@ -15,6 +15,7 @@ from app.judge.flag_extractor import FlagExtractor
 from app.judge.judge_result import JudgeResult
 from app.optimization.ai_usage_result import ChallengeExecutionResult
 from app.optimization.ai_usage_tracker import AiUsageTracker
+from app.solver.new_caesar_analyzer import NewCaesarAnalyzer
 from app.solver.rsa_analyzer import RsaAnalyzer
 
 
@@ -36,6 +37,7 @@ class ChallengeService:
         self._zip_analyzer = ZipArchiveAnalyzer(self.file_analyzer)
         self.flag_extractor = FlagExtractor()
         self._rsa_analyzer = RsaAnalyzer()
+        self._new_caesar_analyzer = NewCaesarAnalyzer()
         self._event_publisher = event_publisher
 
     def solve(
@@ -256,6 +258,22 @@ class ChallengeService:
                             f"方式：{attempt.method}"
                         ),
                         "rsa",
+                    )
+
+        new_caesar_result = self._new_caesar_analyzer.analyze(challenge)
+        if new_caesar_result is not None:
+            for candidate in new_caesar_result.candidates:
+                flag = self.flag_extractor.extract(candidate.plaintext)
+                if flag is not None:
+                    return (
+                        flag,
+                        (
+                            "Python源コードからNew Caesar暗号（b16_encode＋"
+                            "16文字Alphabet Caesar）を検出し復号しました。"
+                            f"鍵：{candidate.key} alphabet：{candidate.alphabet} "
+                            f"検出元：{candidate.source}"
+                        ),
+                        "new_caesar",
                     )
 
         return None
