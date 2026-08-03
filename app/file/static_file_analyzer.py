@@ -6,6 +6,10 @@ from app.file.file_analysis_result import FileAnalysisResult
 from app.file.file_input import FileInput
 from app.file.file_type_detector import FileTypeDetector
 from app.file.image_metadata_extractor import extract_image_metadata
+from app.file.jpeg_metadata_analyzer import (
+    JpegMetadataAnalyzer,
+    jpeg_metadata_summary_strings,
+)
 from app.file.pdf_static_analyzer import PdfStaticAnalyzer, pdf_static_summary_strings
 from app.file.pe_analyzer import PeAnalyzer
 from app.file.png_metadata_analyzer import (
@@ -42,6 +46,7 @@ class StaticFileAnalyzer:
         self._recursive_encoding_analyzer = RecursiveEncodingAnalyzer()
         self._png_metadata_analyzer = PngMetadataAnalyzer()
         self._pdf_static_analyzer = PdfStaticAnalyzer()
+        self._jpeg_metadata_analyzer = JpegMetadataAnalyzer()
 
     def analyze(self, file_input: FileInput) -> FileAnalysisResult:
         detected_type = self.type_detector.detect(file_input)
@@ -110,6 +115,16 @@ class StaticFileAnalyzer:
             self._append_unique_strings(
                 extracted_strings,
                 pdf_static_summary_strings(pdf_static_result),
+                max_strings,
+            )
+        if detected_type == "jpeg":
+            # JPEG構造解析は先頭2MB制限の対象外とし、50MB上限まで全体を読み込む。
+            jpeg_metadata_result = self._jpeg_metadata_analyzer.analyze(
+                file_input.content
+            )
+            self._append_unique_strings(
+                extracted_strings,
+                jpeg_metadata_summary_strings(jpeg_metadata_result),
                 max_strings,
             )
         pe_info = (

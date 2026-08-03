@@ -1,6 +1,13 @@
 from app.challenge.challenge_input import ChallengeInput
 from app.file.appended_data_result import AppendedDataResult
 from app.file.elf_analysis_result import ElfAnalysisResult
+from app.file.jpeg_metadata_analyzer import (
+    JPEG_COMMENT_PREFIX,
+    JPEG_FLAG_PREFIX,
+    JPEG_INFO_PREFIX,
+    JPEG_TRAILING_PREFIX,
+    JPEG_WARNING_PREFIX,
+)
 from app.file.pdf_static_analyzer import (
     PDF_FLAG_PREFIX,
     PDF_INFO_PREFIX,
@@ -37,8 +44,16 @@ _PDF_RESERVED_PREFIXES = (
     PDF_TRAILING_PREFIX,
     PDF_FLAG_PREFIX,
 )
+_JPEG_RESERVED_PREFIXES = (
+    JPEG_INFO_PREFIX,
+    JPEG_WARNING_PREFIX,
+    JPEG_COMMENT_PREFIX,
+    JPEG_TRAILING_PREFIX,
+    JPEG_FLAG_PREFIX,
+)
 _MAX_PNG_CONTEXT_LINES = 20
 _MAX_PDF_CONTEXT_LINES = 20
+_MAX_JPEG_CONTEXT_LINES = 20
 
 
 class ChallengeContextBuilder:
@@ -84,6 +99,7 @@ class ChallengeContextBuilder:
                 for value in file_res.strings
                 if not value.startswith(_PNG_RESERVED_PREFIXES)
                 and not value.startswith(_PDF_RESERVED_PREFIXES)
+                and not value.startswith(_JPEG_RESERVED_PREFIXES)
             ]
             if not display_strings:
                 lines.append("なし")
@@ -103,6 +119,7 @@ class ChallengeContextBuilder:
 
             self._append_png_metadata(lines, file_res.strings)
             self._append_pdf_analysis(lines, file_res.strings)
+            self._append_jpeg_analysis(lines, file_res.strings)
 
             if file_res.pe_info is not None:
                 self._append_pe_info(lines, file_res.pe_info)
@@ -196,6 +213,34 @@ class ChallengeContextBuilder:
             return
         lines.append("\nPDF Analysis:")
         lines.extend(f"- {value}" for value in display_lines[:_MAX_PDF_CONTEXT_LINES])
+
+    def _append_jpeg_analysis(
+        self,
+        lines: list[str],
+        strings: list[str],
+    ) -> None:
+        display_lines: list[str] = []
+        for value in strings:
+            if value.startswith(JPEG_INFO_PREFIX):
+                display_lines.append(value.removeprefix(JPEG_INFO_PREFIX))
+            elif value.startswith(JPEG_COMMENT_PREFIX):
+                display_lines.append(
+                    f"comment={value.removeprefix(JPEG_COMMENT_PREFIX)}"
+                )
+            elif value.startswith(JPEG_WARNING_PREFIX):
+                display_lines.append(
+                    f"warning={value.removeprefix(JPEG_WARNING_PREFIX)}"
+                )
+            elif value.startswith(JPEG_TRAILING_PREFIX):
+                display_lines.append(
+                    f"trailing_data {value.removeprefix(JPEG_TRAILING_PREFIX)}"
+                )
+        if not display_lines:
+            return
+        lines.append("\nJPEG Analysis:")
+        lines.extend(
+            f"- {value}" for value in display_lines[:_MAX_JPEG_CONTEXT_LINES]
+        )
 
     def _append_pe_info(
         self,
