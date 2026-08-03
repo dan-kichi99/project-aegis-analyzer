@@ -17,6 +17,7 @@ from app.optimization.ai_usage_result import ChallengeExecutionResult
 from app.optimization.ai_usage_tracker import AiUsageTracker
 from app.solver.java_source_analyzer import JavaSourceAnalyzer
 from app.solver.new_caesar_analyzer import NewCaesarAnalyzer
+from app.solver.python_source_analyzer import PythonSourceAnalyzer
 from app.solver.rsa_analyzer import RsaAnalyzer
 from app.solver.universal_encoding_analyzer import UniversalEncodingAnalyzer
 
@@ -42,6 +43,7 @@ class ChallengeService:
         self._new_caesar_analyzer = NewCaesarAnalyzer()
         self._universal_encoding_analyzer = UniversalEncodingAnalyzer()
         self._java_source_analyzer = JavaSourceAnalyzer()
+        self._python_source_analyzer = PythonSourceAnalyzer()
         self._event_publisher = event_publisher
 
     def solve(
@@ -332,6 +334,20 @@ class ChallengeService:
                     ),
                     "java_source",
                 )
+
+        python_result = self._python_source_analyzer.analyze(challenge)
+        if python_result is not None:
+            candidate = python_result.candidates[0]
+            prefix = f" prefix={candidate.prefix}" if candidate.prefix else ""
+            return (
+                candidate.flag_candidate,
+                (
+                    f"{candidate.source}のPythonソースからFlag候補を検出しました。"
+                    f"復元方式={candidate.method} 変数={candidate.variable_name}"
+                    f" 行番号={candidate.line_number}{prefix}"
+                ),
+                "python_source",
+            )
 
         return None
 
