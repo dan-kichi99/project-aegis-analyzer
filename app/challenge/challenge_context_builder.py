@@ -10,6 +10,7 @@ from app.solver.xor_result import SingleByteXorResult
 
 _TEXT_CONTENT_LIMIT = 10_000
 _STRINGS_CONTEXT_LIMIT = 50
+_ARCHIVE_SUMMARY_PREFIX = "[ARCHIVE_SUMMARY] "
 
 
 class ChallengeContextBuilder:
@@ -56,6 +57,15 @@ class ChallengeContextBuilder:
                 limited_strings = file_res.strings[:_STRINGS_CONTEXT_LIMIT]
                 for s in limited_strings:
                     lines.append(f"- {s}")
+
+            archive_summary = [
+                value.removeprefix(_ARCHIVE_SUMMARY_PREFIX)
+                for value in file_res.strings
+                if value.startswith(_ARCHIVE_SUMMARY_PREFIX)
+            ]
+            if archive_summary:
+                lines.append("\nArchive Summary:")
+                lines.extend(f"- {value}" for value in archive_summary[:100])
 
             if file_res.pe_info is not None:
                 self._append_pe_info(lines, file_res.pe_info)

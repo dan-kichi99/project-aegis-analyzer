@@ -1,4 +1,5 @@
 from app.file.appended_data_analyzer import AppendedDataAnalyzer
+from app.file.archive_analyzer import ArchiveAnalyzer, archive_summary_strings
 from app.file.common_encoding_decoder import decode_common_encoding
 from app.file.elf_analyzer import ElfAnalyzer
 from app.file.file_analysis_result import FileAnalysisResult
@@ -32,6 +33,7 @@ class StaticFileAnalyzer:
         self._xor_analyzer = SingleByteXorAnalyzer()
         self._caesar_analyzer = CaesarAnalyzer()
         self._appended_data_analyzer = AppendedDataAnalyzer(self.type_detector)
+        self._archive_analyzer = ArchiveAnalyzer()
         self._recursive_encoding_analyzer = RecursiveEncodingAnalyzer()
 
     def analyze(self, file_input: FileInput) -> FileAnalysisResult:
@@ -77,6 +79,14 @@ class StaticFileAnalyzer:
             text_content,
             max_strings,
         )
+        if detected_type == "zip":
+            archive_result = self._archive_analyzer.analyze(file_input.content)
+            if archive_result is not None:
+                self._append_unique_strings(
+                    extracted_strings,
+                    archive_summary_strings(archive_result),
+                    max_strings,
+                )
         pe_info = (
             self._pe_analyzer.analyze(file_input)
             if detected_type == "pe"
