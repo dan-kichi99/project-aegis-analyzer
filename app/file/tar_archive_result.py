@@ -20,4 +20,6 @@ class TarArchiveResult:
     dangerous_paths: tuple[str, ...]
     important_files: tuple[str, ...]
     inner_strings: tuple[str, ...]
+    child_file_blocks: tuple[str, ...]
+    child_files_truncated: bool
     truncated: bool

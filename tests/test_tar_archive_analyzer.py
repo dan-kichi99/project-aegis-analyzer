@@ -266,3 +266,213 @@ def test_no_forbidden_extraction_or_external_tools_in_source():
         "NamedTemporaryFile",
     ):
         assert forbidden not in source
+
+
+# ---------------------------------------------------------------------------
+# TASK-137B: Archive Child Content Context Bridge
+# ---------------------------------------------------------------------------
+
+
+def _build_context(files: dict[str, bytes], *, archive_name: str = "chal.tar") -> str:
+    from app.challenge.challenge_context_builder import ChallengeContextBuilder
+    from app.challenge.challenge_input import ChallengeInput
+
+    content = _build_tar(files)
+    file_input = _archive_input(archive_name, content)
+    file_result = StaticFileAnalyzer().analyze(file_input)
+    challenge = ChallengeInput(question="解析してください", files=[file_result])
+    return ChallengeContextBuilder().build(challenge)
+
+
+def test_chal_py_body_is_shown_in_context():
+    context = _build_context({"substance/chal.py": b"print('hello from chal.py')"})
+    assert "Archive Child Files:" in context
+    assert "===== FILE: substance/chal.py =====" in context
+    assert "print('hello from chal.py')" in context
+    assert "===== END FILE =====" in context
+
+
+def test_output_txt_body_is_shown_in_context():
+    context = _build_context({"substance/output.txt": b"the ciphertext is 12345"})
+    assert "===== FILE: substance/output.txt =====" in context
+    assert "the ciphertext is 12345" in context
+
+
+def test_path_and_body_correspondence_is_maintained():
+    context = _build_context(
+        {
+            "a/one.py": b"BODY_ONE_UNIQUE_MARKER",
+            "b/two.txt": b"BODY_TWO_UNIQUE_MARKER",
+        }
+    )
+    one_index = context.index("===== FILE: a/one.py =====")
+    one_end_index = context.index("===== END FILE =====", one_index)
+    one_section = context[one_index:one_end_index]
+    assert "BODY_ONE_UNIQUE_MARKER" in one_section
+    assert "BODY_TWO_UNIQUE_MARKER" not in one_section
+
+    two_index = context.index("===== FILE: b/two.txt =====")
+    two_end_index = context.index("===== END FILE =====", two_index)
+    two_section = context[two_index:two_end_index]
+    assert "BODY_TWO_UNIQUE_MARKER" in two_section
+    assert "BODY_ONE_UNIQUE_MARKER" not in two_section
+
+
+def test_input_order_is_preserved_in_context():
+    context = _build_context(
+        {
+            "z_first.py": b"first body",
+            "a_second.py": b"second body",
+        }
+    )
+    first_index = context.index("z_first.py")
+    second_index = context.index("a_second.py")
+    assert first_index < second_index
+
+
+def test_max_ten_files_are_shared():
+    files = {f"file_{i}.py": f"body {i}".encode() for i in range(15)}
+    content = _build_tar(files)
+    result = TarArchiveAnalyzer().analyze(_archive_input("chal.tar", content))
+    assert len(result.child_file_blocks) <= 10
+    assert result.child_files_truncated is True
+
+
+def _extract_body(block: str) -> str:
+    body = block.split("content:\n", 1)[1]
+    return body.removesuffix("\n" + "[ARCHIVE_CHILD_FILE_END]")
+
+
+def test_single_file_twenty_thousand_char_limit():
+    huge_body = ("A" * 25_000).encode()
+    content = _build_tar({"huge.py": huge_body})
+    result = TarArchiveAnalyzer().analyze(_archive_input("chal.tar", content))
+    body = _extract_body(result.child_file_blocks[0])
+    assert len(body) == 20_000
+    assert result.child_files_truncated is True
+
+
+def test_total_fifty_thousand_char_limit():
+    files = {f"f{i}.py": ("B" * 15_000).encode() for i in range(5)}
+    content = _build_tar(files)
+    result = TarArchiveAnalyzer().analyze(_archive_input("chal.tar", content))
+    total_body_chars = sum(
+        len(_extract_body(block)) for block in result.child_file_blocks
+    )
+    assert total_body_chars <= 50_000
+    assert result.child_files_truncated is True
+
+
+def test_truncated_is_explicitly_shown_in_context():
+    files = {f"f{i}.py": ("B" * 15_000).encode() for i in range(5)}
+    context = _build_context(files)
+    assert "[一部の子ファイルは上限により省略されました]" in context
+
+
+def test_binary_content_is_excluded_from_child_files():
+    binary_body = bytes(range(256)) * 5
+    content = _build_tar({"data.py": binary_body})
+    result = TarArchiveAnalyzer().analyze(_archive_input("chal.tar", content))
+    assert result.child_file_blocks == ()
+
+
+def test_dangerous_path_is_excluded_from_child_files():
+    content = _build_tar({"../evil.py": b"import os; os.system('bad')"})
+    result = TarArchiveAnalyzer().analyze(_archive_input("chal.tar", content))
+    assert result.child_file_blocks == ()
+    assert "../evil.py" in result.dangerous_paths
+
+
+def test_child_file_blocks_do_not_duplicate_in_normal_strings_section():
+    context = _build_context({"substance/chal.py": b"UNIQUE_BODY_TOKEN_XYZ"})
+    strings_heading_index = context.index("抽出文字列：")
+    child_heading_index = context.index("Archive Child Files:")
+    plain_strings_block = context[strings_heading_index:child_heading_index]
+    assert "[ARCHIVE_CHILD_FILE_BEGIN]" not in plain_strings_block
+
+
+def test_archive_summary_heading_still_present_alongside_child_files():
+    context = _build_context({"substance/chal.py": b"x = 1"})
+    assert "Archive Summary:" in context
+    assert "Archive Child Files:" in context
+    assert context.index("Archive Summary:") < context.index("Archive Child Files:")
+
+
+def test_zip_png_pdf_jpeg_wav_regression_are_unaffected():
+    zip_content = b"PK\x05\x06" + b"\x00" * 18
+    zip_input = FileInput("empty.zip", Path("empty.zip"), len(zip_content), ".zip", zip_content)
+    zip_result = StaticFileAnalyzer().analyze(zip_input)
+    assert zip_result.detected_type == "zip"
+
+    png_content = b"\x89PNG\r\n\x1a\n" + b"\x00" * 40
+    png_input = FileInput("chal.png", Path("chal.png"), len(png_content), ".png", png_content)
+    png_result = StaticFileAnalyzer().analyze(png_input)
+    assert png_result.detected_type == "png"
+
+    pdf_content = b"%PDF-1.7\n1 0 obj\n<< >>\nendobj\ntrailer\n<< >>\n%%EOF\n"
+    pdf_input = FileInput("chal.pdf", Path("chal.pdf"), len(pdf_content), ".pdf", pdf_content)
+    pdf_result = StaticFileAnalyzer().analyze(pdf_input)
+    assert pdf_result.detected_type == "pdf"
+
+    jpeg_content = b"\xff\xd8\xff\xd9"
+    jpeg_input = FileInput("chal.jpg", Path("chal.jpg"), len(jpeg_content), ".jpg", jpeg_content)
+    jpeg_result = StaticFileAnalyzer().analyze(jpeg_input)
+    assert jpeg_result.detected_type == "jpeg"
+
+    wav_content = b"RIFF" + (36).to_bytes(4, "little") + b"WAVEfmt "
+    wav_input = FileInput("chal.wav", Path("chal.wav"), len(wav_content), ".wav", wav_content)
+    wav_result = StaticFileAnalyzer().analyze(wav_input)
+    assert wav_result.name == "chal.wav"
+
+
+def test_challenge_service_and_public_dto_are_unchanged():
+    import inspect
+
+    from app.challenge.challenge_service import ChallengeService
+    from app.file.file_analysis_result import FileAnalysisResult
+
+    result = FileAnalysisResult("x", 0, ".bin", "unknown", None, [])
+    assert result.recursive_encoding_result is None
+
+    signature = inspect.signature(ChallengeService.__init__)
+    assert list(signature.parameters) == [
+        "self",
+        "controller",
+        "analyzer",
+        "file_loader",
+        "file_analyzer",
+        "event_publisher",
+    ]
+
+
+# -- 実データ相当テスト -------------------------------------------------------
+
+
+def test_substance_style_flag_multiplication_expressions_are_readable_in_context():
+    chal_py = (
+        b"from Crypto.Util.number import *\n"
+        b"x = flag * a * b * c\n"
+        b"y = flag * d * e * f\n"
+    )
+    context = _build_context({"substance/chal.py": chal_py})
+    assert "x = flag * a * b * c" in context
+    assert "y = flag * d * e * f" in context
+
+
+def test_square_rsa_style_n_equals_p_times_p_is_readable_in_context():
+    chall_py = b"n = p * p\nc = pow(m, e, n)\n"
+    context = _build_context({"square-rsa/chall.py": chall_py})
+    assert "n = p * p" in context
+
+
+def test_encoding_basics_style_chall_py_and_chall_txt_both_reach_context():
+    chall_py = b"print(open('chall.txt').read())\n"
+    chall_txt = b"encoded_flag = base64.b64encode(FLAG)\n"
+    context = _build_context(
+        {
+            "encoding-basics/chall.py": chall_py,
+            "encoding-basics/chall.txt": chall_txt,
+        }
+    )
+    assert "print(open('chall.txt').read())" in context
+    assert "encoded_flag = base64.b64encode(FLAG)" in context

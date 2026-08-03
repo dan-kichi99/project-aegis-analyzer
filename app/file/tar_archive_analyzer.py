@@ -3,6 +3,7 @@ import io
 import tarfile
 from pathlib import PurePosixPath, PureWindowsPath
 
+from app.file.file_analysis_result import FileAnalysisResult
 from app.file.file_input import FileInput
 from app.file.static_file_analyzer import StaticFileAnalyzer
 from app.file.tar_archive_result import TarArchiveEntry, TarArchiveResult
@@ -13,6 +14,38 @@ _MAX_ENTRY_SIZE = 1_000_000
 _MAX_TOTAL_SIZE = 50_000_000
 _MAX_INNER_STRING_LINES = 50
 _MAX_NESTING_DEPTH = 1
+
+CHILD_FILE_BEGIN = "[ARCHIVE_CHILD_FILE_BEGIN]"
+CHILD_FILE_END = "[ARCHIVE_CHILD_FILE_END]"
+_MAX_CHILD_FILES = 10
+_MAX_CHILD_FILE_CHARS = 20_000
+_MAX_CHILD_TOTAL_CHARS = 50_000
+_BINARY_LOOK_SAMPLE = 2_000
+_BINARY_CONTROL_RATIO = 0.01
+
+_TEXT_CHILD_TYPES = {
+    ".py": "python",
+    ".java": "java",
+    ".c": "c",
+    ".h": "c-header",
+    ".cpp": "cpp",
+    ".hpp": "cpp-header",
+    ".rs": "rust",
+    ".go": "go",
+    ".js": "javascript",
+    ".ts": "typescript",
+    ".php": "php",
+    ".rb": "ruby",
+    ".cs": "csharp",
+    ".txt": "text",
+    ".md": "markdown",
+    ".json": "json",
+    ".xml": "xml",
+    ".yaml": "yaml",
+    ".yml": "yaml",
+    ".cfg": "config",
+    ".ini": "config",
+}
 
 _IMPORTANT_EXTENSIONS = frozenset(
     {
@@ -61,6 +94,27 @@ def tar_archive_summary_strings(result: TarArchiveResult) -> list[str]:
     for value in result.inner_strings:
         values.append(f"{ARCHIVE_SUMMARY_PREFIX}{value}")
     return values
+
+
+CHILD_FILES_TRUNCATED_MARKER = "[ARCHIVE_CHILD_FILES_TRUNCATED]"
+
+
+def tar_archive_child_file_strings(result: TarArchiveResult) -> list[str]:
+    """子ファイル本文ブロックを、Archive Summaryとは別系統のstringsとして返す。"""
+    values = list(result.child_file_blocks)
+    if result.child_files_truncated:
+        values.append(CHILD_FILES_TRUNCATED_MARKER)
+    return values
+
+
+class _ChildContentState:
+    """アーカイブ全体を通した子ファイル本文の収集状態（件数・合計文字数・重複）。"""
+
+    def __init__(self) -> None:
+        self.blocks: list[str] = []
+        self.seen_paths: set[str] = set()
+        self.total_chars = 0
+        self.truncated = False
 
 
 class TarArchiveAnalyzer:
@@ -112,6 +166,7 @@ class TarArchiveAnalyzer:
         dangerous_paths: list[str] = []
         important_files: list[str] = []
         inner_strings: list[str] = []
+        child_state = _ChildContentState()
         total_size = 0
         truncated = False
 
@@ -158,8 +213,11 @@ class TarArchiveAnalyzer:
                     )
                 )
 
-                self._analyze_inner_file(
+                result = self._analyze_inner_file(
                     archive_input, member.name, content, inner_strings
+                )
+                self._maybe_capture_child_content(
+                    member.name, content, result, child_state
                 )
         except (OSError, tarfile.TarError, EOFError):
             truncated = True
@@ -170,6 +228,8 @@ class TarArchiveAnalyzer:
             dangerous_paths=tuple(dangerous_paths),
             important_files=tuple(important_files),
             inner_strings=tuple(inner_strings[:_MAX_INNER_STRING_LINES]),
+            child_file_blocks=tuple(child_state.blocks),
+            child_files_truncated=child_state.truncated,
             truncated=truncated,
         )
 
@@ -211,7 +271,11 @@ class TarArchiveAnalyzer:
             important=important,
         )
         inner_strings: list[str] = []
-        self._analyze_inner_file(archive_input, inner_name, content, inner_strings)
+        child_state = _ChildContentState()
+        result = self._analyze_inner_file(
+            archive_input, inner_name, content, inner_strings
+        )
+        self._maybe_capture_child_content(inner_name, content, result, child_state)
 
         return TarArchiveResult(
             entries=(entry,),
@@ -219,6 +283,8 @@ class TarArchiveAnalyzer:
             dangerous_paths=(),
             important_files=(inner_name,) if important else (),
             inner_strings=tuple(inner_strings[:_MAX_INNER_STRING_LINES]),
+            child_file_blocks=tuple(child_state.blocks),
+            child_files_truncated=child_state.truncated,
             truncated=truncated,
         )
 
@@ -230,7 +296,7 @@ class TarArchiveAnalyzer:
         entry_name: str,
         content: bytes,
         inner_strings: list[str],
-    ) -> None:
+    ) -> FileAnalysisResult:
         entry_path = PurePosixPath(entry_name)
         file_input = FileInput(
             name=f"{archive_input.name}::{entry_name}",
@@ -250,6 +316,72 @@ class TarArchiveAnalyzer:
                 if flag not in seen_flags:
                     seen_flags.add(flag)
                     inner_strings.append(f"flag_candidate={entry_name}:{flag}")
+        return result
+
+    # -- child file content (Agent context bridge) ---------------------------
+
+    def _maybe_capture_child_content(
+        self,
+        entry_name: str,
+        content: bytes,
+        result: FileAnalysisResult,
+        state: _ChildContentState,
+    ) -> None:
+        type_label = _TEXT_CHILD_TYPES.get(PurePosixPath(entry_name).suffix.lower())
+        if type_label is None:
+            return
+        if entry_name in state.seen_paths:
+            return
+        if len(state.blocks) >= _MAX_CHILD_FILES:
+            state.truncated = True
+            return
+        if state.total_chars >= _MAX_CHILD_TOTAL_CHARS:
+            state.truncated = True
+            return
+        if b"\x00" in content:
+            return
+
+        text = result.text_content
+        if text is None:
+            try:
+                text = content.decode("utf-8")
+            except UnicodeDecodeError:
+                return
+        if not text or self._looks_binary(text):
+            return
+
+        state.seen_paths.add(entry_name)
+
+        limited = text[:_MAX_CHILD_FILE_CHARS]
+        file_truncated = len(text) > _MAX_CHILD_FILE_CHARS
+        remaining_total = _MAX_CHILD_TOTAL_CHARS - state.total_chars
+        if len(limited) > remaining_total:
+            limited = limited[:remaining_total]
+            file_truncated = True
+        state.total_chars += len(limited)
+        if file_truncated:
+            state.truncated = True
+
+        block = (
+            f"{CHILD_FILE_BEGIN}\n"
+            f"path={entry_name}\n"
+            f"type={type_label}\n"
+            f"size={len(content)}\n"
+            "content:\n"
+            f"{limited}\n"
+            f"{CHILD_FILE_END}"
+        )
+        state.blocks.append(block)
+
+    @staticmethod
+    def _looks_binary(text: str) -> bool:
+        sample = text[:_BINARY_LOOK_SAMPLE]
+        if not sample:
+            return False
+        control_count = sum(
+            1 for ch in sample if ord(ch) < 0x20 and ch not in "\n\r\t"
+        )
+        return (control_count / len(sample)) > _BINARY_CONTROL_RATIO
 
     # -- safety helpers -------------------------------------------------------
 

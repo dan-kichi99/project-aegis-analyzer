@@ -153,13 +153,23 @@ class StaticFileAnalyzer:
             # TAR/GZIPはdetected_typeに専用区分がないため、signatureで直接判定する。
             # 内部ファイルは既存パイプライン(StaticFileAnalyzer)へ流して解析するため
             # 先頭2MB制限の対象外とし、50MB上限まで全体を読み込む。
-            from app.file.tar_archive_analyzer import tar_archive_summary_strings
+            from app.file.tar_archive_analyzer import (
+                tar_archive_child_file_strings,
+                tar_archive_summary_strings,
+            )
 
             tar_archive_result = self._tar_archive_analyzer.analyze(file_input)
             if tar_archive_result is not None:
                 self._append_unique_strings(
                     extracted_strings,
                     tar_archive_summary_strings(tar_archive_result),
+                    max_strings,
+                )
+                # 子ファイル本文は300文字で切り詰めると内容が壊れるため、
+                # 専用の非切り詰めappendでstringsへ追加する。
+                self._append_long_unique_strings(
+                    extracted_strings,
+                    tar_archive_child_file_strings(tar_archive_result),
                     max_strings,
                 )
         pe_info = (
@@ -298,6 +308,25 @@ class StaticFileAnalyzer:
             if bounded and bounded not in known_strings:
                 extracted_strings.append(bounded)
                 known_strings.add(bounded)
+
+    def _append_long_unique_strings(
+        self,
+        extracted_strings: list[str],
+        additional_strings: list[str],
+        max_strings: int,
+    ) -> None:
+        """_append_unique_stringsと異なり300文字への切り詰めを行わない。
+
+        アーカイブ子ファイル本文のような、既に呼び出し側で長さ上限が
+        適用済みの複数行文字列を、内容を壊さずstringsへ追加するために使う。
+        """
+        known_strings = set(extracted_strings)
+        for value in additional_strings:
+            if len(extracted_strings) >= max_strings:
+                return
+            if value and value not in known_strings:
+                extracted_strings.append(value)
+                known_strings.add(value)
 
     def _append_decoded_strings(
         self,

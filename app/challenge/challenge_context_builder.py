@@ -23,6 +23,11 @@ from app.file.png_metadata_analyzer import (
     PNG_WARNING_PREFIX,
 )
 from app.file.rev_clue_result import RevClueResult
+from app.file.tar_archive_analyzer import (
+    CHILD_FILE_BEGIN,
+    CHILD_FILE_END,
+    CHILD_FILES_TRUNCATED_MARKER,
+)
 from app.file.wav_static_analyzer import (
     WAV_CHUNK_PREFIX,
     WAV_FLAG_PREFIX,
@@ -71,6 +76,7 @@ _MAX_PNG_CONTEXT_LINES = 20
 _MAX_PDF_CONTEXT_LINES = 20
 _MAX_JPEG_CONTEXT_LINES = 20
 _MAX_WAV_CONTEXT_LINES = 20
+_ARCHIVE_CHILD_FILE_MARKERS = (CHILD_FILE_BEGIN, CHILD_FILES_TRUNCATED_MARKER)
 
 
 class ChallengeContextBuilder:
@@ -118,6 +124,7 @@ class ChallengeContextBuilder:
                 and not value.startswith(_PDF_RESERVED_PREFIXES)
                 and not value.startswith(_JPEG_RESERVED_PREFIXES)
                 and not value.startswith(_WAV_RESERVED_PREFIXES)
+                and not value.startswith(_ARCHIVE_CHILD_FILE_MARKERS)
             ]
             if not display_strings:
                 lines.append("なし")
@@ -139,6 +146,7 @@ class ChallengeContextBuilder:
             self._append_pdf_analysis(lines, file_res.strings)
             self._append_jpeg_analysis(lines, file_res.strings)
             self._append_wav_analysis(lines, file_res.strings)
+            self._append_archive_child_files(lines, file_res.strings)
 
             if file_res.pe_info is not None:
                 self._append_pe_info(lines, file_res.pe_info)
@@ -290,6 +298,50 @@ class ChallengeContextBuilder:
         lines.extend(
             f"- {value}" for value in display_lines[:_MAX_WAV_CONTEXT_LINES]
         )
+
+    def _append_archive_child_files(
+        self,
+        lines: list[str],
+        strings: list[str],
+    ) -> None:
+        parsed_files: list[tuple[str, str]] = []
+        truncated = False
+        for value in strings:
+            if value == CHILD_FILES_TRUNCATED_MARKER:
+                truncated = True
+                continue
+            if not value.startswith(CHILD_FILE_BEGIN):
+                continue
+            parsed = self._parse_archive_child_file_block(value)
+            if parsed is not None:
+                parsed_files.append(parsed)
+        if not parsed_files:
+            return
+        lines.append("\nArchive Child Files:")
+        for path, content in parsed_files:
+            lines.append(f"\n===== FILE: {path} =====")
+            lines.append(content)
+            lines.append("===== END FILE =====")
+        if truncated:
+            lines.append("\n[一部の子ファイルは上限により省略されました]")
+
+    @staticmethod
+    def _parse_archive_child_file_block(value: str) -> tuple[str, str] | None:
+        block_lines = value.splitlines()
+        path: str | None = None
+        content_start: int | None = None
+        for index, line in enumerate(block_lines):
+            if line.startswith("path="):
+                path = line.removeprefix("path=")
+            if line == "content:":
+                content_start = index + 1
+                break
+        if path is None or content_start is None:
+            return None
+        content_lines = block_lines[content_start:]
+        if content_lines and content_lines[-1] == CHILD_FILE_END:
+            content_lines = content_lines[:-1]
+        return path, "\n".join(content_lines)
 
     def _append_pe_info(
         self,
