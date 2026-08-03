@@ -17,6 +17,7 @@ from app.file.png_metadata_analyzer import (
     png_metadata_summary_strings,
 )
 from app.file.rev_clue_analyzer import RevClueAnalyzer
+from app.file.wav_static_analyzer import WavStaticAnalyzer, wav_static_summary_strings
 from app.solver.caesar_analyzer import CaesarAnalyzer
 from app.solver.recursive_encoding_analyzer import RecursiveEncodingAnalyzer
 from app.solver.single_byte_xor_analyzer import SingleByteXorAnalyzer
@@ -47,6 +48,7 @@ class StaticFileAnalyzer:
         self._png_metadata_analyzer = PngMetadataAnalyzer()
         self._pdf_static_analyzer = PdfStaticAnalyzer()
         self._jpeg_metadata_analyzer = JpegMetadataAnalyzer()
+        self._wav_static_analyzer = WavStaticAnalyzer()
 
     def analyze(self, file_input: FileInput) -> FileAnalysisResult:
         detected_type = self.type_detector.detect(file_input)
@@ -125,6 +127,15 @@ class StaticFileAnalyzer:
             self._append_unique_strings(
                 extracted_strings,
                 jpeg_metadata_summary_strings(jpeg_metadata_result),
+                max_strings,
+            )
+        if file_input.content.startswith(b"RIFF") and file_input.content[8:12] == b"WAVE":
+            # RIFF/WAVEはdetected_typeに専用区分がないため、signatureで直接判定する。
+            # WAV構造解析は先頭2MB制限の対象外とし、50MB上限まで全体を読み込む。
+            wav_static_result = self._wav_static_analyzer.analyze(file_input.content)
+            self._append_unique_strings(
+                extracted_strings,
+                wav_static_summary_strings(wav_static_result),
                 max_strings,
             )
         pe_info = (

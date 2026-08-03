@@ -23,6 +23,14 @@ from app.file.png_metadata_analyzer import (
     PNG_WARNING_PREFIX,
 )
 from app.file.rev_clue_result import RevClueResult
+from app.file.wav_static_analyzer import (
+    WAV_CHUNK_PREFIX,
+    WAV_FLAG_PREFIX,
+    WAV_INFO_PREFIX,
+    WAV_METADATA_PREFIX,
+    WAV_TRAILING_PREFIX,
+    WAV_WARNING_PREFIX,
+)
 from app.solver.caesar_result import CaesarResult
 from app.solver.recursive_encoding_result import RecursiveEncodingResult
 from app.solver.rsa_result import RsaResult
@@ -51,9 +59,18 @@ _JPEG_RESERVED_PREFIXES = (
     JPEG_TRAILING_PREFIX,
     JPEG_FLAG_PREFIX,
 )
+_WAV_RESERVED_PREFIXES = (
+    WAV_INFO_PREFIX,
+    WAV_METADATA_PREFIX,
+    WAV_WARNING_PREFIX,
+    WAV_CHUNK_PREFIX,
+    WAV_TRAILING_PREFIX,
+    WAV_FLAG_PREFIX,
+)
 _MAX_PNG_CONTEXT_LINES = 20
 _MAX_PDF_CONTEXT_LINES = 20
 _MAX_JPEG_CONTEXT_LINES = 20
+_MAX_WAV_CONTEXT_LINES = 20
 
 
 class ChallengeContextBuilder:
@@ -100,6 +117,7 @@ class ChallengeContextBuilder:
                 if not value.startswith(_PNG_RESERVED_PREFIXES)
                 and not value.startswith(_PDF_RESERVED_PREFIXES)
                 and not value.startswith(_JPEG_RESERVED_PREFIXES)
+                and not value.startswith(_WAV_RESERVED_PREFIXES)
             ]
             if not display_strings:
                 lines.append("なし")
@@ -120,6 +138,7 @@ class ChallengeContextBuilder:
             self._append_png_metadata(lines, file_res.strings)
             self._append_pdf_analysis(lines, file_res.strings)
             self._append_jpeg_analysis(lines, file_res.strings)
+            self._append_wav_analysis(lines, file_res.strings)
 
             if file_res.pe_info is not None:
                 self._append_pe_info(lines, file_res.pe_info)
@@ -240,6 +259,36 @@ class ChallengeContextBuilder:
         lines.append("\nJPEG Analysis:")
         lines.extend(
             f"- {value}" for value in display_lines[:_MAX_JPEG_CONTEXT_LINES]
+        )
+
+    def _append_wav_analysis(
+        self,
+        lines: list[str],
+        strings: list[str],
+    ) -> None:
+        display_lines: list[str] = []
+        for value in strings:
+            if value.startswith(WAV_INFO_PREFIX):
+                display_lines.append(value.removeprefix(WAV_INFO_PREFIX))
+            elif value.startswith(WAV_METADATA_PREFIX):
+                display_lines.append(value.removeprefix(WAV_METADATA_PREFIX))
+            elif value.startswith(WAV_CHUNK_PREFIX):
+                display_lines.append(
+                    "chunk=" + value.removeprefix(WAV_CHUNK_PREFIX).removeprefix("id=")
+                )
+            elif value.startswith(WAV_WARNING_PREFIX):
+                display_lines.append(
+                    f"warning={value.removeprefix(WAV_WARNING_PREFIX)}"
+                )
+            elif value.startswith(WAV_TRAILING_PREFIX):
+                display_lines.append(
+                    f"trailing_data {value.removeprefix(WAV_TRAILING_PREFIX)}"
+                )
+        if not display_lines:
+            return
+        lines.append("\nWAV Analysis:")
+        lines.extend(
+            f"- {value}" for value in display_lines[:_MAX_WAV_CONTEXT_LINES]
         )
 
     def _append_pe_info(
