@@ -1,6 +1,13 @@
 from app.challenge.challenge_input import ChallengeInput
 from app.file.appended_data_result import AppendedDataResult
 from app.file.elf_analysis_result import ElfAnalysisResult
+from app.file.pdf_static_analyzer import (
+    PDF_FLAG_PREFIX,
+    PDF_INFO_PREFIX,
+    PDF_METADATA_PREFIX,
+    PDF_TRAILING_PREFIX,
+    PDF_WARNING_PREFIX,
+)
 from app.file.pe_analysis_result import PeAnalysisResult
 from app.file.png_metadata_analyzer import (
     PNG_FLAG_PREFIX,
@@ -23,7 +30,15 @@ _PNG_RESERVED_PREFIXES = (
     PNG_TRAILING_PREFIX,
     PNG_FLAG_PREFIX,
 )
+_PDF_RESERVED_PREFIXES = (
+    PDF_METADATA_PREFIX,
+    PDF_INFO_PREFIX,
+    PDF_WARNING_PREFIX,
+    PDF_TRAILING_PREFIX,
+    PDF_FLAG_PREFIX,
+)
 _MAX_PNG_CONTEXT_LINES = 20
+_MAX_PDF_CONTEXT_LINES = 20
 
 
 class ChallengeContextBuilder:
@@ -68,6 +83,7 @@ class ChallengeContextBuilder:
                 value
                 for value in file_res.strings
                 if not value.startswith(_PNG_RESERVED_PREFIXES)
+                and not value.startswith(_PDF_RESERVED_PREFIXES)
             ]
             if not display_strings:
                 lines.append("なし")
@@ -86,6 +102,7 @@ class ChallengeContextBuilder:
                 lines.extend(f"- {value}" for value in archive_summary[:100])
 
             self._append_png_metadata(lines, file_res.strings)
+            self._append_pdf_analysis(lines, file_res.strings)
 
             if file_res.pe_info is not None:
                 self._append_pe_info(lines, file_res.pe_info)
@@ -155,6 +172,30 @@ class ChallengeContextBuilder:
             return
         lines.append("\nPNG Metadata:")
         lines.extend(f"- {value}" for value in display_lines[:_MAX_PNG_CONTEXT_LINES])
+
+    def _append_pdf_analysis(
+        self,
+        lines: list[str],
+        strings: list[str],
+    ) -> None:
+        display_lines: list[str] = []
+        for value in strings:
+            if value.startswith(PDF_METADATA_PREFIX):
+                display_lines.append(value.removeprefix(PDF_METADATA_PREFIX))
+            elif value.startswith(PDF_INFO_PREFIX):
+                display_lines.append(value.removeprefix(PDF_INFO_PREFIX))
+            elif value.startswith(PDF_WARNING_PREFIX):
+                display_lines.append(
+                    f"warning={value.removeprefix(PDF_WARNING_PREFIX)}"
+                )
+            elif value.startswith(PDF_TRAILING_PREFIX):
+                display_lines.append(
+                    f"trailing_data {value.removeprefix(PDF_TRAILING_PREFIX)}"
+                )
+        if not display_lines:
+            return
+        lines.append("\nPDF Analysis:")
+        lines.extend(f"- {value}" for value in display_lines[:_MAX_PDF_CONTEXT_LINES])
 
     def _append_pe_info(
         self,
