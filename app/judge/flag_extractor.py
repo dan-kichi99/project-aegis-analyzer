@@ -6,7 +6,7 @@ class FlagExtractor:
 
     _PATTERN = re.compile(
         r"(?:picoCTF|TSGCTF|SECCON|TCP1P|DUCTF|FLAG|flag|CTF|ctf|HTB|AIS3)"
-        r"\{[^}]+\}"
+        r"\{[^\s}\"']+\}"
     )
 
     def extract(self, response: str) -> str | None:

@@ -15,6 +15,7 @@ from app.judge.flag_extractor import FlagExtractor
 from app.judge.judge_result import JudgeResult
 from app.optimization.ai_usage_result import ChallengeExecutionResult
 from app.optimization.ai_usage_tracker import AiUsageTracker
+from app.solver.java_source_analyzer import JavaSourceAnalyzer
 from app.solver.new_caesar_analyzer import NewCaesarAnalyzer
 from app.solver.rsa_analyzer import RsaAnalyzer
 from app.solver.universal_encoding_analyzer import UniversalEncodingAnalyzer
@@ -40,6 +41,7 @@ class ChallengeService:
         self._rsa_analyzer = RsaAnalyzer()
         self._new_caesar_analyzer = NewCaesarAnalyzer()
         self._universal_encoding_analyzer = UniversalEncodingAnalyzer()
+        self._java_source_analyzer = JavaSourceAnalyzer()
         self._event_publisher = event_publisher
 
     def solve(
@@ -304,6 +306,32 @@ class ChallengeService:
                 ),
                 "universal_encoding",
             )
+
+        java_result = self._java_source_analyzer.analyze(challenge)
+        if java_result is not None:
+            candidate = next(
+                (
+                    item
+                    for item in java_result.candidates
+                    if item.flag_candidate is not None
+                ),
+                None,
+            )
+            if candidate is not None and candidate.flag_candidate is not None:
+                line = (
+                    f" 行番号={candidate.line_number}"
+                    if candidate.line_number is not None
+                    else ""
+                )
+                return (
+                    candidate.flag_candidate,
+                    (
+                        f"{candidate.source}のJavaソースからFlag候補を検出しました。"
+                        f"抽出方式={candidate.method} prefix={candidate.prefix}"
+                        f" 比較文字列={candidate.body}{line}"
+                    ),
+                    "java_source",
+                )
 
         return None
 
