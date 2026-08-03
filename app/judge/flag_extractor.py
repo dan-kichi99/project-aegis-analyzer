@@ -4,7 +4,10 @@ import re
 class FlagExtractor:
     """AI回答文からフラグ候補を抽出するクラス"""
 
-    _PATTERN = re.compile(r"(?:picoCTF|FLAG|flag|CTF|ctf)\{[^}]+\}")
+    _PATTERN = re.compile(
+        r"(?:picoCTF|TSGCTF|SECCON|TCP1P|DUCTF|FLAG|flag|CTF|ctf|HTB|AIS3)"
+        r"\{[^}]+\}"
+    )
 
     def extract(self, response: str) -> str | None:
         """

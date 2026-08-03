@@ -2,6 +2,7 @@ import re
 from dataclasses import dataclass
 
 from app.file.rev_clue_result import RevClue, RevClueResult
+from app.judge.flag_extractor import FlagExtractor
 
 _MAX_CLUES = 50
 _SEVERITY_ORDER = {"high": 0, "medium": 1, "low": 2}
@@ -132,12 +133,6 @@ _RULES = tuple(
         "username", "license", "serial",
     )
 ) + (
-    _Rule(
-        re.compile(r"(?:FLAG|flag|CTF|ctf)\{[^}]+\}"),
-        "秘密情報関連",
-        "明確なFlag形式を含むため、優先確認候補です。",
-        "high",
-    ),
     _phrase_rule(
         "/bin/sh",
         "その他の注目文字列",
@@ -152,15 +147,77 @@ _RULES = tuple(
     ),
 )
 
+_STATIC_RULES = tuple(
+    _identifier_rule(value, category, description, severity)
+    for values, category, description, severity in (
+        (
+            (
+                "CreateFile",
+                "ReadFile",
+                "WriteFile",
+                "WinExec",
+                "ShellExecute",
+                "fork",
+            ),
+            "Import / Export候補",
+            "実行ファイルのImportまたはExport候補となる識別子です。",
+            "medium",
+        ),
+        (
+            (
+                ".text",
+                ".data",
+                ".rdata",
+                ".rodata",
+                ".bss",
+                ".idata",
+                ".eh_frame",
+                ".pydata",
+                ".upx",
+            ),
+            "Section",
+            "既知の実行ファイルSection名です。",
+            "low",
+        ),
+        (
+            ("GCC", "MSVC", "clang", "Rust", "Nuitka", "UPX"),
+            "Compiler / Packer",
+            "Compiler、runtime、またはpackerの痕跡です。",
+            "medium",
+        ),
+        (
+            ("PDB", "debug_assert", "assertion_failed"),
+            "デバッグ文字列",
+            "デバッグ情報またはassertionの痕跡です。",
+            "medium",
+        ),
+    )
+    for value in values
+) + tuple(
+    _phrase_rule(
+        value,
+        "Compiler / Packer",
+        "Compiler、runtime、またはbundleの痕跡です。",
+        "medium",
+    )
+    for value in (
+        "Go build",
+        "runtime.main",
+        "rust_eh_personality",
+        "PyInstaller",
+    )
+)
+
 
 class RevClueAnalyzer:
     """実行ファイル由来stringsからRev調査候補を分類する。"""
 
     def analyze(self, strings: list[str]) -> RevClueResult:
+        flag_extractor = FlagExtractor()
         matches: list[tuple[int, int, RevClue]] = []
         seen: dict[tuple[str, str], int] = {}
         for source_index, source in enumerate(strings):
-            for rule_index, rule in enumerate(_RULES):
+            for rule_index, rule in enumerate((*_RULES, *_STATIC_RULES)):
                 match = rule.pattern.search(source)
                 if match is None:
                     continue
@@ -186,6 +243,24 @@ class RevClueAnalyzer:
                     _SEVERITY_ORDER[rule.severity]
                     < _SEVERITY_ORDER[matches[duplicate_index][2].severity]
                 ):
+                    matches[duplicate_index] = candidate
+            for flag in flag_extractor.extract_all(source):
+                key = (flag.casefold(), "秘密情報関連")
+                candidate = (
+                    source_index,
+                    len(_RULES) + len(_STATIC_RULES),
+                    RevClue(
+                        value=flag,
+                        category="秘密情報関連",
+                        description="既存FlagExtractorが認識したFlag候補です。",
+                        severity="high",
+                    ),
+                )
+                duplicate_index = seen.get(key)
+                if duplicate_index is None:
+                    seen[key] = len(matches)
+                    matches.append(candidate)
+                elif matches[duplicate_index][2].severity != "high":
                     matches[duplicate_index] = candidate
         matches.sort(
             key=lambda item: (

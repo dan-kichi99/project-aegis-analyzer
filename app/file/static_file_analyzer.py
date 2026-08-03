@@ -14,6 +14,8 @@ from app.solver.single_byte_xor_analyzer import SingleByteXorAnalyzer
 _ANALYSIS_BYTE_LIMIT = 2_000_000
 _MIN_STRING_LENGTH = 4
 _MAX_STRINGS = 200
+_MAX_REV_STRINGS = 500
+_MAX_STRING_LENGTH = 300
 
 
 class StaticFileAnalyzer:
@@ -47,14 +49,33 @@ class StaticFileAnalyzer:
                 text_content = None
 
         # Printable strings 抽出
-        extracted_strings = self._extract_printable_strings(analysis_content)
+        max_strings = (
+            _MAX_REV_STRINGS
+            if detected_type in {"pe", "elf", "mach-o"}
+            else _MAX_STRINGS
+        )
+        extracted_strings = self._extract_printable_strings(
+            analysis_content, max_strings
+        )
+        self._append_unique_strings(
+            extracted_strings,
+            self._extract_utf16le_strings(analysis_content, max_strings),
+            max_strings,
+        )
+        self._append_unique_strings(
+            extracted_strings,
+            self._extract_short_rev_markers(analysis_content),
+            max_strings,
+        )
         self._append_unique_strings(
             extracted_strings,
             extract_image_metadata(analysis_content, detected_type),
+            max_strings,
         )
         self._append_decoded_strings(
             extracted_strings,
             text_content,
+            max_strings,
         )
         pe_info = (
             self._pe_analyzer.analyze(file_input)
@@ -68,7 +89,7 @@ class StaticFileAnalyzer:
         )
         rev_clues = (
             self._rev_clue_analyzer.analyze(extracted_strings)
-            if detected_type in {"pe", "elf"}
+            if detected_type in {"pe", "elf", "mach-o"}
             else None
         )
         xor_result = self._xor_analyzer.analyze(
@@ -109,7 +130,9 @@ class StaticFileAnalyzer:
             recursive_encoding_result=recursive_encoding_result,
         )
 
-    def _extract_printable_strings(self, content: bytes) -> list[str]:
+    def _extract_printable_strings(
+        self, content: bytes, max_strings: int
+    ) -> list[str]:
         results: list[str] = []
         current_chars: list[str] = []
 
@@ -118,35 +141,84 @@ class StaticFileAnalyzer:
                 current_chars.append(chr(byte))
             else:
                 if len(current_chars) >= _MIN_STRING_LENGTH:
-                    results.append("".join(current_chars))
-                    if len(results) >= _MAX_STRINGS:
+                    results.append("".join(current_chars)[:_MAX_STRING_LENGTH])
+                    if len(results) >= max_strings:
                         return results
                 current_chars = []
 
         if (
             len(current_chars) >= _MIN_STRING_LENGTH
-            and len(results) < _MAX_STRINGS
+            and len(results) < max_strings
         ):
-            results.append("".join(current_chars))
+            results.append("".join(current_chars)[:_MAX_STRING_LENGTH])
         return results
+
+    def _extract_utf16le_strings(
+        self, content: bytes, max_strings: int
+    ) -> list[str]:
+        results: list[str] = []
+        seen: set[str] = set()
+        for alignment in (0, 1):
+            current: list[str] = []
+            for index in range(alignment, len(content) - 1, 2):
+                low, high = content[index], content[index + 1]
+                if high == 0 and 0x20 <= low <= 0x7E:
+                    if (
+                        not current
+                        and index > 0
+                        and 0x20 <= content[index - 1] <= 0x7E
+                    ):
+                        continue
+                    current.append(chr(low))
+                    continue
+                self._append_utf16_string(results, seen, current)
+                current = []
+                if len(results) >= max_strings:
+                    return results
+            self._append_utf16_string(results, seen, current)
+        return results
+
+    @staticmethod
+    def _append_utf16_string(
+        results: list[str],
+        seen: set[str],
+        characters: list[str],
+    ) -> None:
+        if len(characters) < _MIN_STRING_LENGTH:
+            return
+        value = "".join(characters)[:_MAX_STRING_LENGTH]
+        if value not in seen:
+            seen.add(value)
+            results.append(value)
+
+    @staticmethod
+    def _extract_short_rev_markers(content: bytes) -> list[str]:
+        return [
+            marker.decode("ascii")
+            for marker in (b"GCC", b"PDB")
+            if marker in content
+        ]
 
     def _append_unique_strings(
         self,
         extracted_strings: list[str],
         additional_strings: list[str],
+        max_strings: int,
     ) -> None:
         known_strings = set(extracted_strings)
         for value in additional_strings:
-            if len(extracted_strings) >= _MAX_STRINGS:
+            if len(extracted_strings) >= max_strings:
                 return
-            if value and value not in known_strings:
-                extracted_strings.append(value)
-                known_strings.add(value)
+            bounded = value[:_MAX_STRING_LENGTH]
+            if bounded and bounded not in known_strings:
+                extracted_strings.append(bounded)
+                known_strings.add(bounded)
 
     def _append_decoded_strings(
         self,
         extracted_strings: list[str],
         text_content: str | None,
+        max_strings: int,
     ) -> None:
         original_strings = extracted_strings.copy()
         candidate_sources = original_strings.copy()
@@ -160,14 +232,14 @@ class StaticFileAnalyzer:
                 if candidate and candidate not in seen_candidates:
                     seen_candidates.add(candidate)
                     candidates.append(candidate)
-                    if len(candidates) >= _MAX_STRINGS:
+                    if len(candidates) >= max_strings:
                         break
-            if len(candidates) >= _MAX_STRINGS:
+            if len(candidates) >= max_strings:
                 break
 
         known_strings = set(extracted_strings)
         for candidate in candidates:
-            if len(extracted_strings) >= _MAX_STRINGS:
+            if len(extracted_strings) >= max_strings:
                 return
 
             decoded = decode_common_encoding(candidate)

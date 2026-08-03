@@ -14,6 +14,18 @@ class FileTypeDetector:
         if content.startswith(b"\x7fELF"):
             return "elf"
 
+        if content.startswith(
+            (
+                b"\xfe\xed\xfa\xce",
+                b"\xce\xfa\xed\xfe",
+                b"\xfe\xed\xfa\xcf",
+                b"\xcf\xfa\xed\xfe",
+                b"\xca\xfe\xba\xbe",
+                b"\xbe\xba\xfe\xca",
+            )
+        ):
+            return "mach-o"
+
         if content.startswith(b"\x89PNG\r\n\x1a\n"):
             return "png"
 
