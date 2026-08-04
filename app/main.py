@@ -105,6 +105,7 @@ def main() -> None:
         analyzer=analyzer,
         event_publisher=publisher,
     )
+    service.context_builder = context_builder
 
     formatter = ResultFormatter()
 

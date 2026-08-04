@@ -95,21 +95,26 @@ def _build_application(
         gemini_prompt_generator=GeminiPromptGenerator(),
     )
 
-    application_controller = ApplicationController(
-        ChallengeService(
-            controller=Controller(
-                analyzer=analyzer,
-                knowledge_retriever=KnowledgeRetriever(),
-                prompt_manager=prompt_manager,
-                ai_client=ai_client,
-                judge=judge,
-                context_builder=ChallengeContextBuilder(),
-                event_publisher=publisher,
-                agent_coordinator=coordinator,
-            ),
+    context_builder = ChallengeContextBuilder()
+
+    challenge_service = ChallengeService(
+        controller=Controller(
             analyzer=analyzer,
+            knowledge_retriever=KnowledgeRetriever(),
+            prompt_manager=prompt_manager,
+            ai_client=ai_client,
+            judge=judge,
+            context_builder=context_builder,
             event_publisher=publisher,
+            agent_coordinator=coordinator,
         ),
+        analyzer=analyzer,
+        event_publisher=publisher,
+    )
+    challenge_service.context_builder = context_builder
+
+    application_controller = ApplicationController(
+        challenge_service,
         publisher,
     )
 

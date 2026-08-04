@@ -131,3 +131,4 @@ class ChallengeAiUsage:
 class ChallengeExecutionResult:
     result: JudgeResult
     ai_usage: ChallengeAiUsage
+    analysis_context: str

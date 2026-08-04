@@ -188,6 +188,8 @@ def test_challenge_service_fast_path_avoids_controller_and_ai(tmp_path: Path):
     assert "java_equals" in (execution.result.reason or "")
     assert "VaultDoorTraining.java" in (execution.result.reason or "")
     assert execution.ai_usage.local_solution_avoided_ai is True
+    assert execution.analysis_context != ""
+    assert BODY in execution.analysis_context
     controller.process_challenge.assert_not_called()
     controller.process_challenge_with_usage.assert_not_called()
 

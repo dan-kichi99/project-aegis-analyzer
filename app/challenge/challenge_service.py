@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from app.analyzer.analyzer import Analyzer
+from app.challenge.challenge_context_builder import ChallengeContextBuilder
 from app.challenge.challenge_input import ChallengeInput
 from app.controller.controller import Controller
 from app.events.analysis_event import AnalysisEvent, AnalysisEventType
@@ -38,6 +39,7 @@ class ChallengeService:
         self._analyzer = analyzer
         self.file_loader = file_loader or FileLoader()
         self.file_analyzer = file_analyzer or StaticFileAnalyzer()
+        self.context_builder = ChallengeContextBuilder()
         self._zip_analyzer = ZipArchiveAnalyzer(self.file_analyzer)
         self.flag_extractor = FlagExtractor()
         self._rsa_analyzer = RsaAnalyzer()
@@ -109,6 +111,7 @@ class ChallengeService:
             self._publish_completed(result)
             return ChallengeExecutionResult(
                 result=result,
+                analysis_context=self.context_builder.build(challenge),
                 ai_usage=AiUsageTracker().snapshot(
                     knowledge_retrieval_count=0,
                     agent_run_count=0,
@@ -125,6 +128,7 @@ class ChallengeService:
             result = self.controller.process_challenge(challenge)
             execution = ChallengeExecutionResult(
                 result=result,
+                analysis_context=self.context_builder.build(challenge),
                 ai_usage=AiUsageTracker().snapshot(
                     knowledge_retrieval_count=1,
                     agent_run_count=0,

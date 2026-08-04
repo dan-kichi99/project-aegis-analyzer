@@ -18,6 +18,7 @@ from app.challenge.challenge_input import ChallengeInput
 from app.challenge.challenge_service import ChallengeService
 from app.client.base_client import BaseAIClient
 from app.controller.controller import Controller
+from app.file.file_analysis_result import FileAnalysisResult
 from app.judge.flag_extractor import FlagExtractor
 from app.judge.judge_result import JudgeResult
 from app.optimization import (
@@ -226,6 +227,24 @@ def test_parallel_challenges_do_not_mix_usage_or_cache():
     assert len(raw.prompts) == 2
     assert all(item.ai_usage.executed_calls == 1 for item in results)
     assert results[0].ai_usage is not results[1].ai_usage
+
+
+def test_process_challenge_with_usage_exposes_analysis_context_with_question_and_files():
+    controller, _, _, _ = _controller(Category.UNKNOWN, with_agents=False)
+    challenge = ChallengeInput(
+        question="解析対象の問題文です",
+        files=[
+            FileAnalysisResult(
+                "evidence.txt", 18, ".txt", "text", "SECRET_MARKER_VALUE", []
+            )
+        ],
+    )
+    execution = controller.process_challenge_with_usage(challenge)
+    assert execution.analysis_context != ""
+    assert "解析対象の問題文です" in execution.analysis_context
+    assert "SECRET_MARKER_VALUE" in execution.analysis_context
+    assert isinstance(execution.result, JudgeResult)
+    assert execution.ai_usage.executed_calls == 1
 
 
 def test_usage_does_not_expose_prompt_response_or_api_key():

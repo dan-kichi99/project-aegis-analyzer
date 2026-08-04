@@ -72,6 +72,7 @@ class Controller:
         cancel_requested: Callable[[], bool] | None = None,
     ) -> ChallengeExecutionResult:
         tracker, session = self._new_ai_session(cancel_requested)
+        context = self.context_builder.build(ChallengeInput(question=question, files=[]))
         result = self._run_pipeline(
             analysis_target_text=question,
             retrieval_target_text=question,
@@ -83,6 +84,7 @@ class Controller:
         )
         return ChallengeExecutionResult(
             result=result,
+            analysis_context=context,
             ai_usage=tracker.snapshot(
                 knowledge_retrieval_count=1,
                 agent_run_count=0,
@@ -127,6 +129,7 @@ class Controller:
                 result = self._agent_judge_result(category, aggregate)
                 return ChallengeExecutionResult(
                     result=result,
+                    analysis_context=context,
                     ai_usage=tracker.snapshot(
                         knowledge_retrieval_count=1,
                         agent_run_count=agent_runs,
@@ -144,6 +147,7 @@ class Controller:
         )
         return ChallengeExecutionResult(
             result=result,
+            analysis_context=context,
             ai_usage=tracker.snapshot(
                 knowledge_retrieval_count=1,
                 agent_run_count=agent_runs,
