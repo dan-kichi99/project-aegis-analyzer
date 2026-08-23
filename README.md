@@ -199,7 +199,7 @@ OpenAI機能を使う場合だけ、`.env`または環境変数へ`OPENAI_API_KE
 
 **GUI初期画面**（起動直後の問題文・添付ファイル入力画面）
 
-![GUI初期画面](docs/images/aegis-main.png)
+<img src="docs/images/aegis-main.png" alt="Project Aegis Analyzer GUI" width="600">
 
 **解析結果画面**（解析完了後、Flag候補・回答・理由が表示された画面）
 
