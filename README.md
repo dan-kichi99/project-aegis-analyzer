@@ -197,17 +197,13 @@ OpenAI機能を使う場合だけ、`.env`または環境変数へ`OPENAI_API_KE
 
 ## Screenshots
 
-> 以下2枚は本Repositoryへ未同梱です。Windows実機でGUIを起動し撮影の上、`docs/images/`へ配置してください。
+**GUI初期画面**（起動直後の問題文・添付ファイル入力画面）
 
-| Screenshot | 説明 | Path |
-| --- | --- | --- |
-| GUI初期画面 | 起動直後の問題文・添付ファイル入力画面 | `docs/images/aegis-main.png` |
-| 解析結果画面 | 解析完了後、Flag候補・回答・理由が表示された画面 | `docs/images/aegis-analysis-result.png` |
-
-```markdown
 ![GUI初期画面](docs/images/aegis-main.png)
+
+**解析結果画面**（解析完了後、Flag候補・回答・理由が表示された画面）
+
 ![解析結果画面](docs/images/aegis-analysis-result.png)
-```
 
 ---
 
