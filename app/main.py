@@ -2,6 +2,8 @@ import sys
 from dataclasses import replace
 from datetime import datetime, timezone
 
+from openai import OpenAIError
+
 from app.agents.agent_coordinator import AgentCoordinator
 from app.agents.agent_planner import AgentPlanner
 from app.agents.agent_result_aggregator import AgentResultAggregator
@@ -54,7 +56,12 @@ def main() -> None:
     publisher = EventPublisher()
     publisher.subscribe(CliEventSubscriber())
 
-    config = Config()
+    try:
+        config = Config()
+    except ValueError as error:
+        _publish_failure(publisher, error)
+        print(f"エラー：{error}")
+        sys.exit(1)
 
     ai_client = OpenAIClient(
         api_key=config.openai_api_key,
@@ -139,7 +146,7 @@ def main() -> None:
                 execution_analysis = execution_analyzer.analyze(execution_result)
                 print(formatter.format_execution_analysis(execution_analysis))
 
-    except RuntimeError as error:
+    except (RuntimeError, OpenAIError) as error:
         _publish_failure(publisher, error)
         print(
             "AIとの通信中にエラーが発生しました。\n"
